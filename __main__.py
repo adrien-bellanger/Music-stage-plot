@@ -1,5 +1,5 @@
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 from typing import Final, NoReturn, Sequence, Tuple, Union
 
@@ -7,7 +7,9 @@ from math import sqrt, pow
 
 # Python program to demonstrate
 # main() function
-  
+
+n_seats = 0
+
 class Position:
     def __init__(self, x:int, y:int) -> NoReturn:
         self.x: Final[int] = x
@@ -41,13 +43,8 @@ def create_xy(pos: Position, dim: Dimension)->Sequence[Union[float, Tuple[float,
     return (pos.x - dim.length/2, pos.y - dim.width/2, pos.x + dim.length/2, pos.y + dim.width/2)
 
 def point_on_circle(center: Position, radius: int, angle_in_degrees: float):
-    '''
-        Finding the x,y coordinates on circle, based on given angle
-    '''
     from math import cos, sin, pi
-    #center of circle, angle in degree and radius of circle
     angle_in_radians = angle_in_degrees * pi / 180
-    print("radius " + str(radius) + " radians " + str(angle_in_radians) + " cos(radians) " + str(cos(angle_in_radians)) + " sin(radians) " + str(sin(angle_in_radians)))
     x = center.x + (radius * cos(angle_in_radians))
     y = center.y + (radius * sin(angle_in_radians))
 
@@ -59,67 +56,82 @@ class Circle:
         self.center: Final[Position] = center
         self.radius: Final[int] = radius
 
-    def Intersections(self, other: 'Circle') -> Position:
+    def Intersections(self, other: 'Circle', clockwise: bool) -> Position:
         dist: Final[float] = self.center.distance(other.center)
         a: Final[float] = (pow(self.radius, 2) - pow(other.radius, 2) + pow(dist, 2)) / (2* dist)
-        h: Final[float] = sqrt(pow(self.radius, 2))
+        h: Final[float] = sqrt(pow(self.radius, 2) - pow(a, 2))
         p2: Final[Position] = other.center.sub(self.center).scale(a/dist) + self.center
-        # return Position(p2.x + h*(other.center.y - self.center.y)/dist, p2.y - h*(other.center.x - self.center.x)/dist)
-        return Position(p2.x - h*(other.center.y - self.center.y)/dist, p2.y + h*(other.center.x - self.center.x)/dist)
+        if clockwise:
+            return Position(p2.x - h*(other.center.y - self.center.y)/dist, p2.y + h*(other.center.x - self.center.x)/dist)
+        
+        return Position(p2.x + h*(other.center.y - self.center.y)/dist, p2.y - h*(other.center.x - self.center.x)/dist)
+        
 
-# Defining main function
-def main():
+def draw_seat(draw: ImageDraw, pos: Position) -> NoReturn:
+    global n_seats
+    n_seats = n_seats + 1
+    draw.ellipse(create_xy(pos, Dimension(50,50)), fill=(255, 0, 0))
+    return
+
+def create_row(draw: ImageDraw, center: Position, radius: int, start_angle: int, end_angle:int, distancing: int)-> NoReturn:
+    draw.arc(create_xy(center, Dimension(radius*2, radius*2)), start= start_angle, end=end_angle, fill=(255,255,0))
+
+    row_center: Final[Position] = Position(center.x, center.y - radius)
+
+    current_left: Position = point_on_circle(center, radius, start_angle)
+    current_right: Position = point_on_circle(center, radius, end_angle)
+
+    if current_left.distance(current_right) < distancing:
+        draw_seat(draw, row_center)
+        return
     
-    stage: Final[Dimension] = Dimension(1580, 960)
-    podest: Final[Dimension] = Dimension(200, 200)
 
-    center: Final[Position] = Position(stage.length / 2, stage.width)
-    podest_center: Final[Position] = Position(center.x, center.y - podest.width/2)
+    while True:
+        draw_seat(draw, current_left)
+        draw_seat(draw, current_right)
+        if current_left.distance(row_center) < distancing:
+            return
 
-    im = Image.new('RGB', (stage.length, stage.width), (255, 255, 255))
-    draw = ImageDraw.Draw(im)
+        current_left = Circle(center, radius).Intersections(Circle(current_left, distancing), True)
+        current_right = Circle(center, radius).Intersections(Circle(current_right, distancing), False)
 
-    draw.polygon(((0,0), (0,600), (290, 600), (290, 200), (540, 0), (1040, 0), (1290, 200), (1290, 600), (1580, 600), (1580, 0), (0,0)), fill=(200,200,200))
-   
-    podest_xy = create_xy(podest_center, podest)
-    draw.rectangle(podest_xy, fill=None, outline=(0,0,0))
-    
-    print("Podest " + str(podest_xy))
-    
-    first_rang: Final[Dimension] = Dimension(500, 500)
-    first_rang_xy = create_xy(center, first_rang)
-    draw.arc(first_rang_xy, start=190, end=350, fill=(255, 255, 0))
-    print("First Rang: " + str(first_rang_xy))
-
-    first_cla: Final[Position] = point_on_circle(center, first_rang.length/2, 190)
-    print("First Cla: " + str(first_cla.x) + " y " + str(first_cla.y))
-    draw.ellipse(create_xy(first_cla, Dimension(50,50)), fill=(255, 0, 0))
-
-    second_cla: Final[Position] = Circle(center, first_rang.width/2).Intersections(Circle(first_cla, 100))
-    print("Second Cla: " + str(second_cla.x) + " y " + str(second_cla.y))
-    draw.ellipse(create_xy(second_cla, Dimension(50,50)), fill=(255, 0, 0))
-
-    print("Second clarinette to first distance: " + str(first_cla.distance(second_cla)))
-
-    first_fl: Final[Position] = point_on_circle(center, first_rang.length/2, 350)
-    print("First Fl: " + str(first_fl.x) + " y " + str(first_fl.y))
-    draw.ellipse(create_xy(first_fl, Dimension(50,50)), fill=(255, 0, 0))
-
-    second_rang: Final[Dimension] = first_rang + Dimension(400, 400)
-    second_rang_xy = create_xy(center, second_rang)
-    draw.arc(second_rang_xy, start=190, end=350, fill=(255, 255, 0))
-    print("Second Rang: " + str(second_rang_xy))
-
-    third_rang: Final[Dimension] = second_rang + Dimension(400, 400)
-    third_rang_xy = create_xy(center, third_rang)
-    draw.arc(third_rang_xy, start=190, end=350, fill=(255, 255, 0))
-    print("Third Rang: " + str(third_rang_xy))
+        if current_left.distance(current_right) < distancing:
+            draw_seat(draw, row_center)
+            return
 
 
-    #draw.arc((590, 760, 990, 1160), start=225, end=315, fill=(255, 255, 0))
   
-    im.save('/home/famille/Downloads/pillow_imagedraw3.jpg', quality=95)
-# Using the special variable 
-# __name__
-if __name__=="__main__":
-    main()
+font = ImageFont.truetype("arial.ttf", 20)
+
+stage: Final[Dimension] = Dimension(1580, 960)
+podest: Final[Dimension] = Dimension(200, 200)
+
+center: Final[Position] = Position(stage.length / 2, stage.width)
+podest_center: Final[Position] = Position(center.x, center.y - podest.width/2)
+
+im = Image.new('RGB', (stage.length, stage.width), (255, 255, 255))
+draw = ImageDraw.Draw(im)
+
+podest_xy = create_xy(podest_center, podest)
+draw.rectangle(podest_xy, fill=None, outline=(0,0,0))
+
+start_angle: Final[int] = 190
+end_angle: Final[int] = 350
+
+distancing: Final[int] = 100
+first_row_radius: Final[int] = 250 
+create_row(draw, center, first_row_radius, start_angle, end_angle, distancing)
+
+second_row_radius: Final[int] = first_row_radius + 200
+create_row(draw, center, second_row_radius, start_angle, end_angle, distancing)
+
+third_row_radius: Final[int] = second_row_radius + 200
+create_row(draw, center, third_row_radius, start_angle, end_angle, distancing)
+
+draw.polygon(((0,0), (0,600), (290, 600), (290, 200), (540, 0), (1040, 0), (1290, 200), (1290, 600), (1580, 600), (1580, 0), (0,0)), fill=(200,200,200))
+
+draw.text((10,10), "Number of seats " + str(n_seats - 2), fill=(0,0,0), font=font)
+draw.text((10, 40), "scale: 1m", fill=(0,0,0), font=font)
+draw.line(((10,65), (110, 65)), fill=(0,0,0), width=3)
+
+im.save('export/Riesa_Abstand_' + str(distancing) + '.jpg', quality=95)
