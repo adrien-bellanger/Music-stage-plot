@@ -1,7 +1,7 @@
 
 from PIL import Image, ImageDraw, ImageFont
 
-from typing import Final, NoReturn, Sequence, Tuple, Union
+from typing import Final, List, NoReturn, Sequence, Tuple, Union
 
 from math import sqrt, pow
 
@@ -65,7 +65,44 @@ class Circle:
             return Position(p2.x - h*(other.center.y - self.center.y)/dist, p2.y + h*(other.center.x - self.center.x)/dist)
         
         return Position(p2.x + h*(other.center.y - self.center.y)/dist, p2.y - h*(other.center.x - self.center.x)/dist)
-        
+
+class Hall:
+    def __init__(self, name: str, stage: Dimension, row_radius: List[int], 
+                 hidden_areas: Sequence[Union[float, Tuple[float, float]]], hidden_seats: int) -> NoReturn:
+        self.name: Final[str] = name
+        self.stage: Final[Dimension] = stage
+        self.row_radius: Final[List[int]] = row_radius
+        self.hidden_areas: Final[Sequence[Union[float, Tuple[float, float]]]] = hidden_areas
+        self.hidden_seats: Final[int] = hidden_seats
+
+    def draw(self, distancing: int) -> NoReturn:
+        font = ImageFont.truetype("arial.ttf", 20)
+
+        podest: Final[Dimension] = Dimension(200, 200)
+
+        center: Final[Position] = Position(self.stage.length / 2, self.stage.width)
+        podest_center: Final[Position] = Position(center.x, center.y - podest.width/2)
+
+        im = Image.new('RGB', (self.stage.length, self.stage.width), (255, 255, 255))
+        draw = ImageDraw.Draw(im)
+
+        podest_xy = create_xy(podest_center, podest)
+        draw.rectangle(podest_xy, fill=None, outline=(0,0,0))
+
+        start_angle: Final[int] = 190
+        end_angle: Final[int] = 350
+
+        for radius in self.row_radius:
+            create_row(draw, center, radius, start_angle, end_angle, distancing)
+
+        for hidden_area in self.hidden_areas:
+            draw.polygon(hidden_area, fill=(200,200,200))
+
+        draw.text((10,10), "Number of seats " + str(n_seats - self.hidden_seats), fill=(0,0,0), font=font)
+        draw.text((10, 40), "scale: 1m", fill=(0,0,0), font=font)
+        draw.line(((10,65), (110, 65)), fill=(0,0,0), width=3)
+
+        im.save('export/'+ self.name + '_Abstand_' + str(distancing) + '.jpg', quality=95)
 
 def draw_seat(draw: ImageDraw, pos: Position) -> NoReturn:
     global n_seats
@@ -99,39 +136,12 @@ def create_row(draw: ImageDraw, center: Position, radius: int, start_angle: int,
             draw_seat(draw, row_center)
             return
 
+plenarsaal: Final[Hall] = Hall("Plenarsaal", Dimension(1460, 840), [250], [((0,0), (0,100), (100,100), (100,0))], 0)
 
-  
-font = ImageFont.truetype("arial.ttf", 20)
+plenarsaal.draw(150)
+riesa: Final[Hall] = Hall("Riesa", Dimension(1580, 960), [250, 450, 650], 
+                          [((0,0), (0,600), (290, 600), (290, 200), (540, 0), (1040, 0), (1290, 200), (1290, 600), (1580, 600), (1580, 0), (0,0))], 
+                          2)
+riesa.draw(100)
+riesa.draw(150)
 
-stage: Final[Dimension] = Dimension(1580, 960)
-podest: Final[Dimension] = Dimension(200, 200)
-
-center: Final[Position] = Position(stage.length / 2, stage.width)
-podest_center: Final[Position] = Position(center.x, center.y - podest.width/2)
-
-im = Image.new('RGB', (stage.length, stage.width), (255, 255, 255))
-draw = ImageDraw.Draw(im)
-
-podest_xy = create_xy(podest_center, podest)
-draw.rectangle(podest_xy, fill=None, outline=(0,0,0))
-
-start_angle: Final[int] = 190
-end_angle: Final[int] = 350
-
-distancing: Final[int] = 100
-first_row_radius: Final[int] = 250 
-create_row(draw, center, first_row_radius, start_angle, end_angle, distancing)
-
-second_row_radius: Final[int] = first_row_radius + 200
-create_row(draw, center, second_row_radius, start_angle, end_angle, distancing)
-
-third_row_radius: Final[int] = second_row_radius + 200
-create_row(draw, center, third_row_radius, start_angle, end_angle, distancing)
-
-draw.polygon(((0,0), (0,600), (290, 600), (290, 200), (540, 0), (1040, 0), (1290, 200), (1290, 600), (1580, 600), (1580, 0), (0,0)), fill=(200,200,200))
-
-draw.text((10,10), "Number of seats " + str(n_seats - 2), fill=(0,0,0), font=font)
-draw.text((10, 40), "scale: 1m", fill=(0,0,0), font=font)
-draw.line(((10,65), (110, 65)), fill=(0,0,0), width=3)
-
-im.save('export/Riesa_Abstand_' + str(distancing) + '.jpg', quality=95)
