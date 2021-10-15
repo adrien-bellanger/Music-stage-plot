@@ -5,9 +5,6 @@ from typing import Final, List, NoReturn, Sequence, Tuple, Union
 
 from math import sqrt, pow
 
-# Python program to demonstrate
-# main() function
-
 n_seats = 0
 
 
@@ -116,15 +113,13 @@ class Rows:
 class Hall:
     def __init__(self, name: str, stage: Dimension, rows: Rows,
                  n_percussion_deep: int,
-                 hidden_areas: Sequence[Union[float, Tuple[float, float]]],
-                 hidden_seats: int) -> NoReturn:
+                 hidden_areas: Sequence[Union[float, Tuple[float, float]]]) -> NoReturn:
         self.name: Final[str] = name
         self.stage: Final[Dimension] = stage
         self.rows: Final[Rows] = rows
         self.n_percussion_deep: Final[int] = n_percussion_deep
         self.hidden_areas: Final[Sequence[Union[float, Tuple[float, float]]]] \
             = hidden_areas
-        self.hidden_seats: Final[int] = hidden_seats
 
     def draw(self, distancing: int) -> NoReturn:
         global n_seats
@@ -157,7 +152,7 @@ class Hall:
         self.rows.draw(draw, center, distancing)
 
         draw.text((10, 10), "Number of seats " +
-                  str(n_seats - self.hidden_seats) + "\n" +
+                  str(n_seats) + "\n" +
                   "distancing: " + str(distancing) + "\n" +
                   "Percussion deep: " + str(self.n_percussion_deep) + " cm\n" +
                   "scale 1m", fill=(0, 0, 0), font=font)
@@ -179,8 +174,8 @@ def draw_seat(draw: ImageDraw, pos: Position) -> NoReturn:
 
 def create_row(draw: ImageDraw, center: Position, radius: int,
                start_angle: int, end_angle: int, distancing: int) -> NoReturn:
-    draw.arc(create_xy(center, Dimension(radius*2, radius*2)),
-             start=start_angle, end=end_angle, fill=(255, 255, 0))
+    # draw.arc(create_xy(center, Dimension(radius*2, radius*2)),
+    #          start=start_angle, end=end_angle, fill=(255, 255, 0))
 
     row_center: Final[Position] = point_on_circle(center, radius,
                                                   (start_angle + end_angle)/2)
@@ -208,33 +203,45 @@ def create_row(draw: ImageDraw, center: Position, radius: int,
             draw_seat(draw, row_center)
             return
 
+def create_polygon_from_line(start_x: int, start_y: int, end_x:int, end_y:int, half_width_x: int, half_width_y: int) -> Union[float, Tuple[float, float]]:
+    return (start_x - half_width_x, start_y - half_width_y), (end_x - half_width_x, end_y - half_width_y), (end_x + half_width_x, end_y + half_width_y), (start_x + half_width_x, start_y + half_width_y)
 
-elsterwerda: Final[Hall] = Hall("Elsterwerda", Dimension(1330, 600 + 600),
+elsterwerda_stage: Final[Dimension] = Dimension(1330, 600)
+elsterwerda_hidden_areas: Final[Sequence[Union[float, Tuple[float, float]]]] = [
+    ((0, 0), (0, 600), (340, 600), (340, 0)),
+    ((1330, 0), (1330, 600), (990, 600), (990, 0))
+    ]
+
+elsterwerda_600: Final[Hall] = Hall("Elsterwerda_600", elsterwerda_stage + Dimension(0, 600),
                                 Rows([None, None, None, None, [RowAngles(222, 222), RowAngles(249, 291), RowAngles(318, 318)], [RowAngles(252, 288)]], 75, 150), 210,
-                                [((0, 0), (0, 600), (340, 600), (340, 0)),
-                                 ((1330, 0), (1330, 600), (990, 600), (990, 0))
-                                 ], 0)
-elsterwerda.draw(200)
+                                elsterwerda_hidden_areas)
+elsterwerda_600.draw(200)
 
-elsterwerda_klein: Final[Hall] = Hall("Elsterwerda_klein", Dimension(1330, 600 + 500),
+elsterwerda_500: Final[Hall] = Hall("Elsterwerda_500", elsterwerda_stage + Dimension(0, 500),
                                 Rows([None, None, None, None, [RowAngles(249, 291)]], 75, 150), 210,
-                                [((0, 0), (0, 600), (340, 600), (340, 0)),
-                                 ((1330, 0), (1330, 600), (990, 600), (990, 0))
-                                 ], 0)
-elsterwerda_klein.draw(200)
+                                elsterwerda_hidden_areas)
+elsterwerda_500.draw(200)
 
 plenarsaal: Final[Hall] = Hall("Plenarsaal", Dimension(1460, 740),
-                               Rows(Rows.create_row_angles(4), 100, 150), 0,
-                               [((0, 0), (0, 100), (100, 100), (100, 0))], 0)
+                               Rows([None, [RowAngles(190, 190), RowAngles(215, 305), RowAngles(325, 350)], 
+                               [RowAngles(190, 300), RowAngles(318, 350)], 
+                               [RowAngles(190, 315), RowAngles(327, 327), RowAngles(337, 350)]], 100, 150), 0,
+                               [((0, 0), (0, 100), (100, 100), (100, 0)), 
+                               ((1460, 0), (1260, 0), (1260, 200), (1460, 200)),
+                               create_polygon_from_line(0, 460, 260, 460, 0, 2),
+                               create_polygon_from_line(0, 605, 260, 605, 0, 2),
+                               create_polygon_from_line(260, 460, 260, 605, 2, 0),
+                               create_polygon_from_line(260, 540, 675, 505, 0, 2),
+                               create_polygon_from_line(675, 505, 1090, 405, 0, 2),
+                               create_polygon_from_line(1150, 325, 1460, 325, 0, 2),
+                               create_polygon_from_line(1150, 430, 1460, 480, 0, 2)])
 plenarsaal.draw(150)
 
 plenarsaal.draw(150)
 riesa: Final[Hall] = Hall("Riesa", Dimension(1580, 960),
-                          Rows(Rows.create_row_angles(3), 150, 150), 235,
+                          Rows([None, None, None, [RowAngles(190, 205), RowAngles(226, 314), RowAngles(335, 350)], [RowAngles(203, 203), RowAngles(337, 337)]], 90, 150), 235,
                           [((0, 0), (0, 600), (290, 600), (290, 200), (540, 0),
                             (1040, 0), (1290, 200), (1290, 600), (1580, 600),
-                            (1580, 0), (0, 0))],
-                          2)
-riesa.draw(100)
+                            (1580, 0), (0, 0))])
 riesa.draw(150)
 
