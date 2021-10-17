@@ -89,10 +89,6 @@ class Rows:
             n_distancing_delta_first_row
         self.n_distancing_row: Final[int] = n_distancing_row
 
-    @staticmethod
-    def create_row_angles(n_number_rows: int) -> List[RowAngles]:
-        return [None] * n_number_rows
-
     def draw(self, draw: ImageDraw, center:
              Position, distancing: int) -> NoReturn:
         start_angle: Final[int] = 190
@@ -100,7 +96,7 @@ class Rows:
 
         radius: int = self.n_distancing_delta_first_row
         for row_with_angles in self.rows_with_angles:
-            radius = radius + self.n_distancing_row
+            radius = radius + max(distancing, self.n_distancing_row)
             if row_with_angles is None:
                 create_row(draw, center, radius, start_angle, end_angle,
                            distancing)
@@ -174,8 +170,8 @@ def draw_seat(draw: ImageDraw, pos: Position) -> NoReturn:
 
 def create_row(draw: ImageDraw, center: Position, radius: int,
                start_angle: int, end_angle: int, distancing: int) -> NoReturn:
-    # draw.arc(create_xy(center, Dimension(radius*2, radius*2)),
-    #          start=start_angle, end=end_angle, fill=(255, 255, 0))
+    draw.arc(create_xy(center, Dimension(radius*2, radius*2)),
+             start=start_angle, end=end_angle, fill=(255, 255, 0))
 
     row_center: Final[Position] = point_on_circle(center, radius,
                                                   (start_angle + end_angle)/2)
@@ -213,14 +209,20 @@ elsterwerda_hidden_areas: Final[Sequence[Union[float, Tuple[float, float]]]] = [
     ]
 
 elsterwerda_600: Final[Hall] = Hall("Elsterwerda_600", elsterwerda_stage + Dimension(0, 600),
-                                Rows([None, None, None, None, [RowAngles(222, 222), RowAngles(249, 291), RowAngles(318, 318)], [RowAngles(252, 288)]], 75, 150), 210,
+                                Rows([None, None, None, 
+                                [RowAngles(222, 222), RowAngles(248, 292), RowAngles(318, 318)],
+                                [RowAngles(252, 252), RowAngles(288, 288)]
+                                ], 48, 200), 210,
                                 elsterwerda_hidden_areas)
 elsterwerda_600.draw(200)
 
-elsterwerda_500: Final[Hall] = Hall("Elsterwerda_500", elsterwerda_stage + Dimension(0, 500),
-                                Rows([None, None, None, None, [RowAngles(249, 291)]], 75, 150), 210,
+elsterwerda_650: Final[Hall] = Hall("Elsterwerda_650", elsterwerda_stage + Dimension(0, 650),
+                                Rows([None, None, None, 
+                                [RowAngles(218, 232), RowAngles(248, 292), RowAngles(308, 322)],
+                                [RowAngles(252, 288)]
+                                ], 48, 200), 210,
                                 elsterwerda_hidden_areas)
-elsterwerda_500.draw(200)
+elsterwerda_650.draw(200)
 
 plenarsaal: Final[Hall] = Hall("Plenarsaal", Dimension(1460, 740),
                                Rows([None, [RowAngles(190, 190), RowAngles(215, 305), RowAngles(325, 350)], 
@@ -245,3 +247,6 @@ riesa: Final[Hall] = Hall("Riesa", Dimension(1580, 960),
                             (1580, 0), (0, 0))])
 riesa.draw(150)
 
+
+glauchau: Final[Hall] = Hall("Glauchau", Dimension(920, 1150), Rows([None, None, [RowAngles(210, 330)], [RowAngles(230, 310)], [RowAngles(238.5, 301.5)]], 70, 150), 300, [((0, 480), (460, 0), (0,0)), ((460, 0), (920, 0), (920, 480))])
+glauchau.draw(150)
