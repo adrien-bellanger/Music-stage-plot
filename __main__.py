@@ -164,14 +164,14 @@ class Hall:
 def draw_seat(draw: ImageDraw, pos: Position) -> NoReturn:
     global n_seats
     n_seats = n_seats + 1
-    draw.ellipse(create_xy(pos, Dimension(50, 50)), fill=(255, 0, 0))
+    draw.ellipse(create_xy(pos, Dimension(50, 50)), outline=(0, 0, 0), width=2)
     return
 
 
 def create_row(draw: ImageDraw, center: Position, radius: int,
                start_angle: int, end_angle: int, distancing: int) -> NoReturn:
-    draw.arc(create_xy(center, Dimension(radius*2, radius*2)),
-             start=start_angle, end=end_angle, fill=(255, 255, 0))
+    # draw.arc(create_xy(center, Dimension(radius*2, radius*2)),
+    #          start=start_angle, end=end_angle, fill=(255, 255, 0))
 
     row_center: Final[Position] = point_on_circle(center, radius,
                                                   (start_angle + end_angle)/2)
