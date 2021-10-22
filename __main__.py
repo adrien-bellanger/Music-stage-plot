@@ -199,16 +199,39 @@ class Rows:
 
 class Hall:
     def __init__(self, name: str, stage: Dimension, rows: Rows,
-                 n_percussion_deep: int,
-                 hidden_areas: Sequence[Union[float, Tuple[float, float]]],
+                 percussion_area: Union[Tuple[float, float]],
+                 hidden_areas: Sequence[Union[Tuple[float, float]]],
                  text_top_left: Position) -> NoReturn:
         self.name: Final[str] = name
         self.stage: Final[Dimension] = stage
         self.rows: Final[Rows] = rows
-        self.n_percussion_deep: Final[int] = n_percussion_deep
-        self.hidden_areas: Final[Sequence[Union[float, Tuple[float, float]]]] \
+        self.percussion_area: Final[Union[Tuple[float, float]]] = percussion_area
+        self.hidden_areas: Final[Sequence[Union[Tuple[float, float]]]] \
             = hidden_areas
         self.text_top_left: Final[Position] = text_top_left
+
+    def draw_percussion_area(self, image: Image) -> NoReturn:
+        ImageDraw.Draw(image).polygon(self.percussion_area, outline="black", fill=(240, 240, 240))
+        n_min_x: float = self.stage.length
+        n_max_x: float = 0
+        n_min_y: float = self.stage.width
+        n_max_y: float = 0
+        for (x,y) in self.percussion_area:
+            if x < n_min_x:
+                n_min_x = x
+            if x > n_max_x:
+                n_max_x = x
+            if y < n_min_y:
+                n_min_y = y
+            if y > n_max_y:
+                n_max_y = y
+
+        center: Final[Position] = Position((n_min_x + n_max_x)/2, (n_min_y + n_max_y)/2)
+        instrument_image_original = Image.open(Path(INSTRUMENT_PATH + 'PAUKE.png'))
+        n_max_size = max(instrument_image_original.size[0], instrument_image_original.size[1])
+        instrument_image = instrument_image_original.reduce(max(1, int(n_max_size / 100)))
+        image.alpha_composite(instrument_image, (max(0, int(center.x - instrument_image.size[0] / 2)),
+                                              max(0, int(center.y - instrument_image.size[1] / 2))))
 
     def draw(self, distancing: int) -> NoReturn:
         global n_seats
@@ -231,12 +254,10 @@ class Hall:
         draw.rectangle(podest_xy, fill=None, outline=(0, 0, 0))
 
         # Draw "Percussion line"
-        draw.line(((0, self.n_percussion_deep),
-                   (self.stage.length, self.n_percussion_deep)),
-                  fill=(0, 0, 0), width=2)
+        self.draw_percussion_area(im)
 
         for hidden_area in self.hidden_areas:
-            draw.polygon(hidden_area, fill=(200, 200, 200))
+            draw.polygon(hidden_area, fill=(160, 160, 160))
 
         self.rows.draw(im, center, distancing)
 
@@ -300,7 +321,8 @@ elsterwerda_650: Final[Hall] = Hall("2021_11_13_Elsterwerda", elsterwerda_stage 
                                  Row(RowAngles(308, 322), [INSTRUMENT_TUBA, INSTRUMENT_TUBA])],
                                 [Row(RowAngles(252, 288), [INSTRUMENT_TRuMPET,
                                                            INSTRUMENT_TROMBONE, INSTRUMENT_TROMBONE, INSTRUMENT_TROMBONE])]
-                                ], 48, 200), 210,
+                                ], 48, 200),
+                                ((340, 0), (340, 210), (990, 210), (990, 0)),
                                 elsterwerda_hidden_areas, Position(10, 10))
 elsterwerda_650.draw(200)
 
@@ -323,9 +345,10 @@ plenarsaal: Final[Hall] = Hall("2021_11_07_Plenarsaal", Dimension(1460, 740),
                                                                 INSTRUMENT_TROMBONE, INSTRUMENT_TROMBONE]),
                                       Row(RowAngles(327, 327), [INSTRUMENT_TUBA]),
                                       Row(RowAngles(337, 350), [INSTRUMENT_TUBA, INSTRUMENT_SAX])]],
-                                    100, 150), 0,
+                                    100, 150),
+                               ((0, 100), (0,400), (400, 0), (100, 0), (100,100)),
                                [((0, 0), (0, 100), (100, 100), (100, 0)), 
-                               ((1460, 0), (1260, 0), (1260, 200), (1460, 200)),
+                               ((1460, 0), (1240, 0), (1240, 200), (1460, 200)),
                                create_polygon_from_line(0, 460, 260, 460, 0, 2),
                                create_polygon_from_line(0, 605, 260, 605, 0, 2),
                                create_polygon_from_line(260, 460, 260, 605, 2, 0),
@@ -352,7 +375,8 @@ riesa: Final[Hall] = Hall("2021_11_14_Riesa", Dimension(1580, 960),
                                                            INSTRUMENT_TROMBONE, INSTRUMENT_TUBA]),
                                  Row(RowAngles(335, 350), [INSTRUMENT_TUBA, INSTRUMENT_SAX])],
                                 [Row(RowAngles(203, 203), [INSTRUMENT_CLARINET]),
-                                 Row(RowAngles(337, 337), [INSTRUMENT_TUBA])]], 90, 150), 235,
+                                 Row(RowAngles(337, 337), [INSTRUMENT_TUBA])]], 90, 150),
+                          ((540, 0), (290, 200), (290, 235), (1290, 235), (1290, 200), (1040, 0)),
                           [((0, 0), (0, 600), (290, 600), (290, 200), (540, 0),
                             (1040, 0), (1290, 200), (1290, 600), (1580, 600),
                             (1580, 0), (0, 0))], Position(10, 10))
@@ -362,5 +386,6 @@ riesa.draw(150)
 glauchau: Final[Hall] = Hall("Glauchau", Dimension(920, 1150),
                              Rows([None, None, [Row(RowAngles(210, 330), None)],
                                    [Row(RowAngles(230, 310), None)], [Row(RowAngles(238.5, 301.5), None)]], 70, 150),
-                             300, [((0, 480), (460, 0), (0,0)), ((460, 0), (920, 0), (920, 480))], Position(10, 10))
+                             ((173, 300), (460, 0), (747, 300)),
+                             [((0, 480), (460, 0), (0,0)), ((460, 0), (920, 0), (920, 480))], Position(10, 10))
 glauchau.draw(150)
