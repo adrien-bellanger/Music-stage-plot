@@ -1,5 +1,7 @@
 # Ignore the export Directory
 export/
+Instruments/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
