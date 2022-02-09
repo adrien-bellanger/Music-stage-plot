@@ -4,7 +4,7 @@ import math
 
 class Position:
     """A position on the stage."""
-    def __init__(self, x: float, y: float) -> NoReturn:
+    def __init__(self, x: float, y: float) -> None:
         self.x: Final[float] = x
         self.y: Final[float] = y
 
@@ -29,7 +29,7 @@ class Position:
 
 class Dimension:
     """Representation of a dimension."""
-    def __init__(self, length: int, width: int) -> NoReturn:
+    def __init__(self, length: int, width: int) -> None:
         self.length: Final[int] = length
         self.width: Final[int] = width
 
@@ -39,14 +39,14 @@ class Dimension:
 
 class ArcAngles:
     """Define begin and end angles of an arc."""
-    def __init__(self, start_angle: int, end_angle: int) -> NoReturn:
+    def __init__(self, start_angle: int, end_angle: int) -> None:
         self.start_angle: Final[int] = start_angle
         self.end_angle: Final[int] = end_angle
 
 
 class Circle:
     """Representation of a circle."""
-    def __init__(self, center: Position, radius: float) -> NoReturn:
+    def __init__(self, center: Position, radius: float) -> None:
         self.center: Final[Position] = center
         self.radius: Final[float] = radius
 
