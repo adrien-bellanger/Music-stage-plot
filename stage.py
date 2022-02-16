@@ -271,7 +271,8 @@ class Hall:
         self.draw_percussion_area(im)
 
         for hidden_area in self.hidden_areas:
-            draw.polygon(hidden_area, fill=(160, 160, 160))
+            if isinstance(hidden_area, geometry.Polygon):
+                draw.polygon(hidden_area.get_as_sequence(), fill=(160, 160, 160))
 
         print("Hall " + self.name)
 
