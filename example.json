@@ -1,0 +1,67 @@
+{
+    "name":"Test_Großsedlitz",
+    "stage":
+    {
+        "length": 1300,
+        "width": 900
+    },
+    "rows":
+    {
+        "list":
+        [
+            null, null, null, null, null, null,
+            [
+                {
+                    "angles":
+                    {
+                        "start": 214,
+                        "end": 237
+                    },
+                    "instruments": null
+                },
+                {
+                    "angles":
+                    {
+                        "start": 303,
+                        "end": 326
+                    },
+                    "instruments": null
+                }]
+        ],
+        "distancing": 150,
+        "distancingFirstRow": 50
+    },
+    "distancing": 100,
+    "percussion":
+    [
+        {
+            "polygon":
+            [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 250
+                },
+                {
+                    "x": 1500,
+                    "y": 250
+                },
+                {
+                    "x": 1500,
+                    "y": 0
+                }
+            ]
+        }
+    ],
+    "hidden":
+    [
+    ],
+    "legend":
+    {
+        "x": 10,
+        "y": 10
+    }
+}

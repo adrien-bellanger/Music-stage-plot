@@ -1,4 +1,4 @@
-from typing import Final, List, NoReturn, Sequence, Tuple, Union
+from typing import Final, List, Sequence, Tuple, Union, Optional
 import math
 
 
@@ -7,6 +7,16 @@ class Position:
     def __init__(self, x: float, y: float) -> None:
         self.x: Final[float] = x
         self.y: Final[float] = y
+
+    @staticmethod
+    def from_dict(dct: dict) -> Optional["Position"]:
+        x: Optional[float] = dct.get("x")
+        y: Optional[float] = dct.get("y")
+        if x is None or y is None:
+            print(f"A position is not valid {dct}.")
+            return None
+
+        return Position(x=x, y=y)
 
     def __sub__(self, other: 'Position') -> 'Position':
         return Position(self.x - other.x, self.y - other.y)
@@ -33,8 +43,70 @@ class Dimension:
         self.length: Final[int] = length
         self.width: Final[int] = width
 
+    @staticmethod
+    def from_dict(dct: dict) -> Optional["Dimension"]:
+        if dct is None or "length" not in dct or "width" not in dct:
+            print(f"A dimension is not valid {dct}.")
+            return None
+
+        return Dimension(dct["length"], dct["width"])
+
     def __add__(self, other: 'Dimension') -> 'Dimension':
         return Dimension(self.length + other.length, self.width + other.width)
+
+
+class Polygon:
+    """Representation of a polygon."""
+    def __init__(self, points: List[Position]) -> None:
+        self.points: Final[List[Position]] = points
+
+    @staticmethod
+    def from_dict(dct: dict) -> Optional["Polygon"]:
+        list_polygon: Optional[List[dict]] = dct.get("polygon")
+        if list_polygon is not None:
+            polygon: List[Position] = list()
+            for pos in list_polygon:
+                new_pos: Optional[Position] = Position.from_dict(pos)
+
+                if new_pos is not None:
+                    polygon.append(new_pos)
+
+            return Polygon(polygon)
+
+        return None
+
+    @staticmethod
+    def create_rectangle(center: Position, dim: Dimension) -> "Polygon":
+        """Create a rectangle with given center and dimension."""
+        return Polygon([Position(x=int(center.x - dim.length / 2), y=int(center.y - dim.width / 2)),
+                        Position(x=int(center.x + dim.length / 2), y=int(center.y + dim.width / 2))])
+
+    def get_as_sequence(self) -> Sequence[Tuple[int, int]]:
+        seq: Sequence[Tuple[int, int]] = []
+        for pos in self.points:
+            seq.append((pos.x, pos.y))
+
+        return seq
+
+class Area(Union[Polygon]):
+    @staticmethod
+    def from_dict(dct: dict) -> Optional["Area"]:
+        if "polygon" in dct:
+            return Polygon.from_dict(dct)
+
+        return None
+
+
+class Areas(List[Area]):
+    @staticmethod
+    def from_dict(list_areas: List[dict]) -> "Areas":
+        areas: Areas = list()
+        for dict_area in list_areas:
+            new_area: Optional[Area] = Area.from_dict(dict_area)
+            if new_area is not None:
+                areas.append(new_area)
+
+        return areas
 
 
 class ArcAngles:
@@ -42,6 +114,20 @@ class ArcAngles:
     def __init__(self, start_angle: int, end_angle: int) -> None:
         self.start_angle: Final[int] = start_angle
         self.end_angle: Final[int] = end_angle
+
+    @staticmethod
+    def from_dict(dct: Optional[dict]) -> Optional["ArcAngles"]:
+        if dct is None:
+            return None
+
+        start: Optional[int] = dct.get("start")
+        end: Optional[int] = dct.get("end")
+
+        if start is None or end is None:
+            print(f"An arc angles is not valid {dct}.")
+            return None
+
+        return ArcAngles(start_angle=start, end_angle=end)
 
 
 class Circle:
@@ -81,10 +167,3 @@ class Circle:
         percent: Final[float] = (abs(angles.end_angle - angles.start_angle)) / 360
 
         return circle_perimeter * percent
-
-
-def create_rectangle(center: Position,
-                     dim: Dimension) -> Sequence[Union[int, Tuple[int, int]]]:
-    """Create a rectangle with given center and dimension."""
-    return (int(center.x - dim.length / 2), int(center.y - dim.width / 2),
-            int(center.x + dim.length / 2), int(center.y + dim.width / 2))

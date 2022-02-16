@@ -1,27 +1,37 @@
-from typing import Final, Sequence, Tuple, Union
+from typing import Final, List, Sequence, Tuple, Union, Optional
 
 import geometry
 import stage
 
 if False:
-
+    from PIL import Image
     im = Image.new("RGBA", (100, 100))
-    im.save(INSTRUMENT_PATH + 'NO_INSTRUMENT.png')
+    im.save(stage.INSTRUMENT_PATH + 'NO_INSTRUMENT.png')
+
 
 def create_polygon_from_line(start_x: int, start_y: int, end_x:int, end_y:int, half_width_x: int, half_width_y: int) -> Union[float, Tuple[float, float]]:
     return (start_x - half_width_x, start_y - half_width_y), (end_x - half_width_x, end_y - half_width_y), (end_x + half_width_x, end_y + half_width_y), (start_x + half_width_x, start_y + half_width_y)
 
-if True:
-    test_stage: Final[geometry.Dimension] = geometry.Dimension(1300, 900)
-    test_hidden_areas: Final[Sequence[Union[float, Tuple[float, float]]]] = []
 
-    test: Final[stage.Hall] = stage.Hall("Test_Großsedlitz", test_stage,
-                                         stage.Rows([None, None, None, None, None, None,
-                                                    [stage.Row(geometry.ArcAngles(214, 237), None),
-                                                     stage.Row(geometry.ArcAngles(303, 326), None)]], 50, 100),
-                                         ((0, 0), (0, 250), (1500, 250), (1500, 0)),
-                                         test_hidden_areas, geometry.Position(10, 10))
-    test.draw(100)
+if True:
+    import json
+
+    with open("example.json", "r") as read_file:
+        print("Starting to convert json decoding")
+        test_as_dict = json.load(read_file)
+        test_as_object: Final[Optional[stage.Hall]] = stage.Hall.from_dict(test_as_dict)
+        test_as_object.draw()
+
+    # test_stage: Final[geometry.Dimension] = geometry.Dimension(1300, 900)
+    # test_hidden_areas: Final[Sequence[List[Tuple[float, float]]]] = []
+    #
+    # test: Final[stage.Hall] = stage.Hall("Test_Großsedlitz", test_stage,
+    #                                      stage.Rows([None, None, None, None, None, None,
+    #                                                 [stage.Row(geometry.ArcAngles(214, 237), None),
+    #                                                  stage.Row(geometry.ArcAngles(303, 326), None)]], 50, 100),
+    #                                      [(0, 0), (0, 250), (1500, 250), (1500, 0)],
+    #                                      test_hidden_areas, geometry.Position(10, 10))
+    # test.draw(100)
 
 if False:
     kulturpalast_stage: Final[geometry.Dimension] = geometry.Dimension(2110, 1570)
@@ -30,6 +40,7 @@ if False:
     ]
 
 if False:
+    import math
     bautzen_krone_1m_Wall: Final[int] = int(math.sqrt(2) * 50)
     bautzen_krone_stage: Final[geometry.Dimension] = geometry.Dimension(1700 + bautzen_krone_1m_Wall * 4 * 2, 1410)
     bautzen_krone_middleLength: Final[int] = int(bautzen_krone_stage.length / 2)
