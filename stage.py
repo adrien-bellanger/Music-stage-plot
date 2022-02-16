@@ -117,7 +117,7 @@ class Row:
             else current_position
         distancing: Final[float] = current_position.distance(second_position)
 
-        print("radius: " + str(radius) + " distancing: " + str(distancing))
+        print(f"radius: {radius}cm distancing: {int(distancing)}cm.")
 
         for instrument in instruments:
             instrument.draw(im, current_position)
