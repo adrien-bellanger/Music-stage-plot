@@ -78,8 +78,15 @@ class Polygon:
     @staticmethod
     def create_rectangle(center: Position, dim: Dimension) -> "Polygon":
         """Create a rectangle with given center and dimension."""
-        return Polygon([Position(x=int(center.x - dim.length / 2), y=int(center.y - dim.width / 2)),
-                        Position(x=int(center.x + dim.length / 2), y=int(center.y + dim.width / 2))])
+        p1: Final[Position] = Position(int(center.x - dim.length / 2),
+                                       int(center.y - dim.width / 2))
+        p2: Final[Position] = Position(int(center.x - dim.length / 2),
+                                       int(center.y + dim.width / 2))
+        p3: Final[Position] = Position(int(center.x + dim.length / 2),
+                                       int(center.y + dim.width / 2))
+        p4: Final[Position] = Position(int(center.x + dim.length / 2),
+                                       int(center.y - dim.width / 2))
+        return Polygon([p1, p2, p3, p4])
 
     def get_as_sequence(self) -> Sequence[Tuple[int, int]]:
         seq: Sequence[Tuple[int, int]] = []
@@ -87,6 +94,7 @@ class Polygon:
             seq.append((pos.x, pos.y))
 
         return seq
+
 
 class Area(Union[Polygon]):
     @staticmethod

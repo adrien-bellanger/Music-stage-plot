@@ -42,9 +42,10 @@ class Instrument:
         n_seats = n_seats + 1
 
         if self.path is None:
-            ImageDraw.Draw(im).ellipse(
-                geometry.Polygon.create_rectangle(center, geometry.Dimension(50, 50)).get_as_sequence(),
-                outline=(0, 0, 0), width=2)
+            radius: Final[int] = 25
+            ImageDraw.Draw(im).ellipse((center.x - radius, center.y - radius,
+                                        center.x + radius, center.y + radius),
+                                       outline=(0, 0, 0), width=2)
             return
 
         instrument_image_original = Image.open(self.path)
