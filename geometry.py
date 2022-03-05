@@ -115,14 +115,11 @@ class ArcAngles:
         return ArcAngles(start_angle=start, end_angle=end)
 
 
-class Circle:
+class Circle(sympy.Circle):
     """Representation of a circle."""
-    def __init__(self, center: sympy.Point, radius: float) -> None:
-        self.circle: Final[sympy.Circle] = sympy.Circle(center, radius)
-
-    def intersections(self, other: 'Circle', clockwise: bool) -> Optional[sympy.Point]:
+    def intersections(self, other: sympy.Circle, clockwise: bool) -> Optional[sympy.Point]:
         """Calculate the intersection point between 2 circles."""
-        intersections: Final[List[sympy.Point]] = self.circle.intersection(other.circle)
+        intersections: Final[List[sympy.Point]] = self.intersection(other)
 
         if len(intersections) == 0:
             return None
@@ -145,15 +142,15 @@ class Circle:
         """Calculate the point of the circle corresponding to the given angle."""
         from math import cos, sin, pi
         angle_in_radians = angle_in_degrees * pi / 180
-        x = self.circle.center.x + (self.circle.radius * cos(angle_in_radians))
-        y = self.circle.center.y + (self.circle.radius * sin(angle_in_radians))
+        x = self.center.x + (self.radius * cos(angle_in_radians))
+        y = self.center.y + (self.radius * sin(angle_in_radians))
 
         return sympy.Point(round(x), round(y))
 
     def angle(self, pos: sympy.Point) -> float:
         """Calculate the angle corresponding to the given point."""
         from math import atan2, degrees
-        angle_in_radius = atan2(-(self.circle.center.y - pos.y), pos.x - self.circle.center.x)
+        angle_in_radius = atan2(-(self.center.y - pos.y), pos.x - self.center.x)
         angle_in_degrees = degrees(angle_in_radius)
         if angle_in_degrees >= 0:
             return angle_in_degrees
@@ -163,4 +160,4 @@ class Circle:
     def perimeter(self, angles: ArcAngles) -> float:
         percent: Final[float] = (abs(angles.end_angle - angles.start_angle)) / 360
 
-        return self.circle.circumference * percent
+        return self.circumference * percent
