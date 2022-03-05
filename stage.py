@@ -43,8 +43,8 @@ class Instrument:
 
         if self.path is None:
             radius: Final[int] = 25
-            ImageDraw.Draw(im).ellipse((center.x - radius, center.y - radius,
-                                        center.x + radius, center.y + radius),
+            ImageDraw.Draw(im).ellipse((center.point.x - radius, center.point.y - radius,
+                                        center.point.x + radius, center.point.y + radius),
                                        outline=(0, 0, 0), width=2)
             return
 
@@ -234,21 +234,21 @@ class Hall:
                 n_min_y: float = self.stage.width
                 n_max_y: float = 0
                 for pos in area.points:
-                    if pos.x < n_min_x:
-                        n_min_x = pos.x
-                    if pos.x > n_max_x:
-                        n_max_x = pos.x
-                    if pos.y < n_min_y:
-                        n_min_y = pos.y
-                    if pos.y > n_max_y:
-                        n_max_y = pos.y
+                    if pos.point.x < n_min_x:
+                        n_min_x = pos.point.x
+                    if pos.point.x > n_max_x:
+                        n_max_x = pos.point.x
+                    if pos.point.y < n_min_y:
+                        n_min_y = pos.point.y
+                    if pos.point.y > n_max_y:
+                        n_max_y = pos.point.y
 
-                center: geometry.Position = geometry.Position((n_min_x + n_max_x)/2, (n_min_y + n_max_y)/2)
+                center: geometry.Position = geometry.Position.from_xy((n_min_x + n_max_x)/2, (n_min_y + n_max_y)/2)
                 instrument_image_original = Image.open(Path(PATH + 'PAUKE.png'))
                 n_max_size = max(instrument_image_original.size[0], instrument_image_original.size[1])
                 instrument_image = instrument_image_original.reduce(max(1, int(n_max_size / 100)))
-                image.alpha_composite(instrument_image, (max(0, int(center.x - instrument_image.size[0] / 2)),
-                                                         max(0, int(center.y - instrument_image.size[1] / 2))))
+                image.alpha_composite(instrument_image, (max(0, int(center.point.x - instrument_image.size[0] / 2)),
+                                                         max(0, int(center.point.y - instrument_image.size[1] / 2))))
 
     def draw(self) -> None:
         global n_seats
@@ -258,8 +258,9 @@ class Hall:
 
         podest: Final[geometry.Dimension] = geometry.Dimension(100, 100)
 
-        center: Final[geometry.Position] = geometry.Position(self.stage.length / 2, self.stage.width)
-        podest_center: Final[geometry.Position] = geometry.Position(center.x, center.y - podest.width/2)
+        center: Final[geometry.Position] = geometry.Position.from_xy(self.stage.length / 2, self.stage.width)
+        podest_center: Final[geometry.Position] = geometry.Position.from_xy(center.point.x,
+                                                                            center.point.y - podest.width/2)
 
         im = Image.new("RGBA", (self.stage.length, self.stage.width),
                        (255, 255, 255))
@@ -279,14 +280,14 @@ class Hall:
 
         self.rows.draw(im, center, self.distancing)
 
-        draw.text((self.text_top_left.x, self.text_top_left.y), str(self.name) + "\n" +
+        draw.text((self.text_top_left.point.x, self.text_top_left.point.y), str(self.name) + "\n" +
                   "Number of seats " + str(n_seats) + "\n" +
                   "distancing: " + str(self.distancing) + " cm\n" +
                   "row distancing: " + str(self.rows.n_distancing_row) + "cm\n" +
                   "scale 1m", fill=(0, 0, 0), font=font)
         n_top_line: Final[int] = 120
-        draw.line(((self.text_top_left.x, self.text_top_left.y + n_top_line),
-                   (self.text_top_left.x + 100, self.text_top_left.y + n_top_line)), fill=(0, 0, 0),
+        draw.line(((self.text_top_left.point.x, self.text_top_left.point.y + n_top_line),
+                   (self.text_top_left.point.x + 100, self.text_top_left.point.y + n_top_line)), fill=(0, 0, 0),
                   width=3)
 
         im.save('export/' + self.name + '_distancing_' + str(self.distancing) + '_row_distancing_'

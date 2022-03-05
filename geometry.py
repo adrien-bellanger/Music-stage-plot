@@ -1,12 +1,15 @@
 from typing import Final, List, Sequence, Tuple, Union, Optional
-import math
+import sympy
 
 
 class Position:
     """A position on the stage."""
-    def __init__(self, x: float, y: float) -> None:
-        self.x: Final[float] = x
-        self.y: Final[float] = y
+    def __init__(self, point: sympy.Point) -> None:
+        self.point: Final[sympy.Point] = point
+
+    @staticmethod
+    def from_xy(x: int, y: int) -> "Position":
+        return Position(sympy.Point(x, y))
 
     @staticmethod
     def from_dict(dct: dict) -> Optional["Position"]:
@@ -16,25 +19,21 @@ class Position:
             print(f"A position is not valid {dct}.")
             return None
 
-        return Position(x=x, y=y)
+        return Position.from_xy(x, y)
 
     def __sub__(self, other: 'Position') -> 'Position':
-        return Position(self.x - other.x, self.y - other.y)
+        return Position.from_xy(self.point.x - other.point.x, self.point.y - other.point.y)
 
     def __add__(self, other: 'Position') -> 'Position':
-        return Position(self.x + other.x, self.y + other.y)
+        return Position.from_xy(self.point.x + other.point.x, self.point.y + other.point.y)
 
     def distance(self, other: 'Position') -> float:
         """Distance between 2 position."""
-        return math.sqrt(pow(self.x - other.x, 2) + pow(self.y - other.y, 2))
-
-    def normal(self) -> 'Position':
-        length: float = math.sqrt(pow(self.x, 2) + pow(self.y, 2))
-        return Position(self.x / length, self.y / length)
+        return self.point.distance(other.point)
 
     def scale(self, s: float) -> 'Position':
         """Calculate the scaled position."""
-        return Position(self.x * s, self.y * s)
+        return Position.from_xy(self.point.x * s, self.point.y * s)
 
 
 class Dimension:
@@ -78,20 +77,20 @@ class Polygon:
     @staticmethod
     def create_rectangle(center: Position, dim: Dimension) -> "Polygon":
         """Create a rectangle with given center and dimension."""
-        p1: Final[Position] = Position(int(center.x - dim.length / 2),
-                                       int(center.y - dim.width / 2))
-        p2: Final[Position] = Position(int(center.x - dim.length / 2),
-                                       int(center.y + dim.width / 2))
-        p3: Final[Position] = Position(int(center.x + dim.length / 2),
-                                       int(center.y + dim.width / 2))
-        p4: Final[Position] = Position(int(center.x + dim.length / 2),
-                                       int(center.y - dim.width / 2))
+        p1: Final[Position] = Position.from_xy(int(center.point.x - dim.length / 2),
+                                               int(center.point.y - dim.width / 2))
+        p2: Final[Position] = Position.from_xy(int(center.point.x - dim.length / 2),
+                                               int(center.point.y + dim.width / 2))
+        p3: Final[Position] = Position.from_xy(int(center.point.x + dim.length / 2),
+                                               int(center.point.y + dim.width / 2))
+        p4: Final[Position] = Position.from_xy(int(center.point.x + dim.length / 2),
+                                               int(center.point.y - dim.width / 2))
         return Polygon([p1, p2, p3, p4])
 
     def get_as_sequence(self) -> Sequence[Tuple[int, int]]:
         seq: Sequence[Tuple[int, int]] = []
         for pos in self.points:
-            seq.append((pos.x, pos.y))
+            seq.append((pos.point.x, pos.point.y))
 
         return seq
 
@@ -141,36 +140,37 @@ class ArcAngles:
 class Circle:
     """Representation of a circle."""
     def __init__(self, center: Position, radius: float) -> None:
-        self.center: Final[Position] = center
-        self.radius: Final[float] = radius
+        self.circle: Final[sympy.Circle] = sympy.Circle(center.point, radius)
 
-    def intersections(self, other: 'Circle', clockwise: bool) -> Position:
+    def intersections(self, other: 'Circle', clockwise: bool) -> Optional[Position]:
         """Calculate the intersection point between 2 circles."""
-        dist: Final[float] = self.center.distance(other.center)
-        a: Final[float] = (pow(self.radius, 2) - pow(other.radius, 2) +
+        dist: Final[float] = self.circle.center.distance(other.circle.center)
+        a: Final[float] = (pow(int(self.circle.radius), 2) - pow(other.circle.radius, 2) +
                            pow(dist, 2)) / (2 * dist)
-        h: Final[float] = math.sqrt(pow(self.radius, 2) - pow(a, 2))
-        p2: Final[Position] = (other.center - self.center).scale(a / dist) + self.center
+        import math
+        h: Final[float] = math.sqrt(pow(self.circle.radius, 2) - pow(a, 2))
+        p2: Final[Position] = (Position(other.circle.center) - Position(self.circle.center)).scale(a / dist) \
+                              + Position(self.circle.center)
         if clockwise:
-            return Position(p2.x - h * (other.center.y - self.center.y) / dist,
-                            p2.y + h * (other.center.x - self.center.x) / dist)
+            return Position.from_xy((p2.point.x - h * (other.circle.center.y - self.circle.center.y) / dist).round(0),
+                                    (p2.point.y + h * (other.circle.center.x - self.circle.center.x) / dist).round(0))
 
-        return Position(p2.x + h * (other.center.y - self.center.y) / dist,
-                        p2.y - h * (other.center.x - self.center.x) / dist)
+        return Position.from_xy((p2.point.x + h * (other.circle.center.y - self.circle.center.y) / dist).round(0),
+                                 (p2.point.y - h * (other.circle.center.x - self.circle.center.x) / dist).round(0))
 
     def position(self, angle_in_degrees: float) -> Position:
         """Calculate the position of the circle corresponding to the given angle."""
         from math import cos, sin, pi
         angle_in_radians = angle_in_degrees * pi / 180
-        x = self.center.x + (self.radius * cos(angle_in_radians))
-        y = self.center.y + (self.radius * sin(angle_in_radians))
+        x = self.circle.center.x + (self.circle.radius * cos(angle_in_radians))
+        y = self.circle.center.y + (self.circle.radius * sin(angle_in_radians))
 
-        return Position(x, y)
+        return Position.from_xy(x, y)
 
     def perimeter(self, angles: ArcAngles) -> float:
         from math import pi
 
-        circle_perimeter: Final[float] = 2 * pi * float(self.radius)
+        circle_perimeter: Final[float] = 2 * pi * float(self.circle.radius)
 
         percent: Final[float] = (abs(angles.end_angle - angles.start_angle)) / 360
 
