@@ -36,23 +36,20 @@ class Dimension:
         return Dimension(self.length + other.length, self.width + other.width)
 
 
-class Polygon:
+class Polygon(sympy.Polygon):
     """Representation of a polygon."""
-    def __init__(self, points: List[sympy.Point]) -> None:
-        self.points: Final[List[sympy.Point]] = points
-
     @staticmethod
     def from_dict(dct: dict) -> Optional["Polygon"]:
         list_polygon: Optional[List[dict]] = dct.get("polygon")
         if list_polygon is not None:
-            polygon: List[sympy.Point] = list()
+            points: Sequence[sympy.Point] = []
             for pos in list_polygon:
                 new_pos: Optional[sympy.Point] = Point.from_dict(pos)
 
                 if new_pos is not None:
-                    polygon.append(new_pos)
+                    points.append(new_pos)
 
-            return Polygon(polygon)
+            return Polygon(*points)
 
         return None
 
@@ -63,11 +60,11 @@ class Polygon:
         p2: Final[sympy.Point] = sympy.Point(round(center.x - dim.length / 2), round(center.y + dim.width / 2))
         p3: Final[sympy.Point] = sympy.Point(round(center.x + dim.length / 2), round(center.y + dim.width / 2))
         p4: Final[sympy.Point] = sympy.Point(round(center.x + dim.length / 2), round(center.y - dim.width / 2))
-        return Polygon([p1, p2, p3, p4])
+        return Polygon(p1, p2, p3, p4)
 
     def get_as_sequence(self) -> Sequence[Tuple[int, int]]:
         seq: Sequence[Tuple[int, int]] = []
-        for pos in self.points:
+        for pos in self.vertices:
             seq.append((pos.x, pos.y))
 
         return seq

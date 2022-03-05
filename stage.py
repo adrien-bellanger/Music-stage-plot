@@ -228,21 +228,8 @@ class Hall:
         for area in self.percussion_areas:
             if isinstance(area, geometry.Polygon):
                 ImageDraw.Draw(image).polygon(area.get_as_sequence(), outline="black", fill=(240, 240, 240))
-                n_min_x: float = self.stage.length
-                n_max_x: float = 0
-                n_min_y: float = self.stage.width
-                n_max_y: float = 0
-                for pos in area.points:
-                    if pos.x < n_min_x:
-                        n_min_x = pos.x
-                    if pos.x > n_max_x:
-                        n_max_x = pos.x
-                    if pos.y < n_min_y:
-                        n_min_y = pos.y
-                    if pos.y > n_max_y:
-                        n_max_y = pos.y
 
-                center: sympy.Point = sympy.Point((n_min_x + n_max_x)/2, (n_min_y + n_max_y)/2)
+                center: sympy.Point = area.centroid
                 instrument_image_original = Image.open(Path(PATH + 'PAUKE.png'))
                 n_max_size = max(instrument_image_original.size[0], instrument_image_original.size[1])
                 instrument_image = instrument_image_original.reduce(max(1, int(n_max_size / 100)))
