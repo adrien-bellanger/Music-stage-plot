@@ -1,3 +1,4 @@
+import math
 from typing import Final, List, Sequence, Tuple, Union, Optional
 import sympy
 
@@ -6,6 +7,10 @@ class Position:
     """A position on the stage."""
     def __init__(self, point: sympy.Point) -> None:
         self.point: Final[sympy.Point] = point
+
+    @staticmethod
+    def round_point(point: sympy.Point) -> "Position":
+        return Position.from_xy(round(point.x), round(point.y))
 
     @staticmethod
     def from_xy(x: int, y: int) -> "Position":
@@ -144,19 +149,24 @@ class Circle:
 
     def intersections(self, other: 'Circle', clockwise: bool) -> Optional[Position]:
         """Calculate the intersection point between 2 circles."""
-        dist: Final[float] = self.circle.center.distance(other.circle.center)
-        a: Final[float] = (pow(int(self.circle.radius), 2) - pow(other.circle.radius, 2) +
-                           pow(dist, 2)) / (2 * dist)
-        import math
-        h: Final[float] = math.sqrt(pow(self.circle.radius, 2) - pow(a, 2))
-        p2: Final[Position] = (Position(other.circle.center) - Position(self.circle.center)).scale(a / dist) \
-                              + Position(self.circle.center)
-        if clockwise:
-            return Position.from_xy((p2.point.x - h * (other.circle.center.y - self.circle.center.y) / dist).round(0),
-                                    (p2.point.y + h * (other.circle.center.x - self.circle.center.x) / dist).round(0))
+        intersections: Final[List[sympy.Point]] = self.circle.intersection(other.circle)
 
-        return Position.from_xy((p2.point.x + h * (other.circle.center.y - self.circle.center.y) / dist).round(0),
-                                 (p2.point.y - h * (other.circle.center.x - self.circle.center.x) / dist).round(0))
+        if len(intersections) == 0:
+            return None
+        elif len(intersections) == 1:
+            return Position.round_point(intersections[0])
+        elif len(intersections) == 2:
+            p1: Final[Position] = Position.round_point(intersections[0])
+            p2: Final[Position] = Position.round_point(intersections[1])
+            angle_p1: float = self.angle(p1)
+            angle_p2: float = self.angle(p2)
+            are_clockwise: Final[bool] = (angle_p1 < angle_p2) if abs(angle_p2 - angle_p1) < 180 \
+                else not (angle_p1 < angle_p2)
+
+            if are_clockwise == clockwise:
+                return p2
+            else:
+                return p1
 
     def position(self, angle_in_degrees: float) -> Position:
         """Calculate the position of the circle corresponding to the given angle."""
@@ -166,6 +176,16 @@ class Circle:
         y = self.circle.center.y + (self.circle.radius * sin(angle_in_radians))
 
         return Position.from_xy(x, y)
+
+    def angle(self, pos: Position) -> float:
+        """Calculate the angle corresponding to the given position."""
+        from math import atan2, degrees
+        angle_in_radius = atan2(-(self.circle.center.y - pos.point.y), pos.point.x - self.circle.center.x)
+        angle_in_degrees = degrees(angle_in_radius)
+        if angle_in_degrees >= 0:
+            return angle_in_degrees
+        else:
+            return 360 + angle_in_degrees
 
     def perimeter(self, angles: ArcAngles) -> float:
         from math import pi
