@@ -1,44 +1,21 @@
-import math
 from typing import Final, List, Sequence, Tuple, Union, Optional
 import sympy
 
 
-class Position:
-    """A position on the stage."""
-    def __init__(self, point: sympy.Point) -> None:
-        self.point: Final[sympy.Point] = point
+class Point:
+    @staticmethod
+    def round_point(point: sympy.Point) -> sympy.Point:
+        return sympy.Point(round(point.x), round(point.y))
 
     @staticmethod
-    def round_point(point: sympy.Point) -> "Position":
-        return Position.from_xy(round(point.x), round(point.y))
-
-    @staticmethod
-    def from_xy(x: int, y: int) -> "Position":
-        return Position(sympy.Point(x, y))
-
-    @staticmethod
-    def from_dict(dct: dict) -> Optional["Position"]:
+    def from_dict(dct: dict) -> Optional[sympy.Point]:
         x: Optional[float] = dct.get("x")
         y: Optional[float] = dct.get("y")
         if x is None or y is None:
-            print(f"A position is not valid {dct}.")
+            print(f"A point is not valid {dct}.")
             return None
 
-        return Position.from_xy(x, y)
-
-    def __sub__(self, other: 'Position') -> 'Position':
-        return Position.from_xy(self.point.x - other.point.x, self.point.y - other.point.y)
-
-    def __add__(self, other: 'Position') -> 'Position':
-        return Position.from_xy(self.point.x + other.point.x, self.point.y + other.point.y)
-
-    def distance(self, other: 'Position') -> float:
-        """Distance between 2 position."""
-        return self.point.distance(other.point)
-
-    def scale(self, s: float) -> 'Position':
-        """Calculate the scaled position."""
-        return Position.from_xy(self.point.x * s, self.point.y * s)
+        return sympy.Point(x, y)
 
 
 class Dimension:
@@ -61,16 +38,16 @@ class Dimension:
 
 class Polygon:
     """Representation of a polygon."""
-    def __init__(self, points: List[Position]) -> None:
-        self.points: Final[List[Position]] = points
+    def __init__(self, points: List[sympy.Point]) -> None:
+        self.points: Final[List[sympy.Point]] = points
 
     @staticmethod
     def from_dict(dct: dict) -> Optional["Polygon"]:
         list_polygon: Optional[List[dict]] = dct.get("polygon")
         if list_polygon is not None:
-            polygon: List[Position] = list()
+            polygon: List[sympy.Point] = list()
             for pos in list_polygon:
-                new_pos: Optional[Position] = Position.from_dict(pos)
+                new_pos: Optional[sympy.Point] = Point.from_dict(pos)
 
                 if new_pos is not None:
                     polygon.append(new_pos)
@@ -80,22 +57,18 @@ class Polygon:
         return None
 
     @staticmethod
-    def create_rectangle(center: Position, dim: Dimension) -> "Polygon":
+    def create_rectangle(center: sympy.Point, dim: Dimension) -> "Polygon":
         """Create a rectangle with given center and dimension."""
-        p1: Final[Position] = Position.from_xy(int(center.point.x - dim.length / 2),
-                                               int(center.point.y - dim.width / 2))
-        p2: Final[Position] = Position.from_xy(int(center.point.x - dim.length / 2),
-                                               int(center.point.y + dim.width / 2))
-        p3: Final[Position] = Position.from_xy(int(center.point.x + dim.length / 2),
-                                               int(center.point.y + dim.width / 2))
-        p4: Final[Position] = Position.from_xy(int(center.point.x + dim.length / 2),
-                                               int(center.point.y - dim.width / 2))
+        p1: Final[sympy.Point] = sympy.Point(round(center.x - dim.length / 2), round(center.y - dim.width / 2))
+        p2: Final[sympy.Point] = sympy.Point(round(center.x - dim.length / 2), round(center.y + dim.width / 2))
+        p3: Final[sympy.Point] = sympy.Point(round(center.x + dim.length / 2), round(center.y + dim.width / 2))
+        p4: Final[sympy.Point] = sympy.Point(round(center.x + dim.length / 2), round(center.y - dim.width / 2))
         return Polygon([p1, p2, p3, p4])
 
     def get_as_sequence(self) -> Sequence[Tuple[int, int]]:
         seq: Sequence[Tuple[int, int]] = []
         for pos in self.points:
-            seq.append((pos.point.x, pos.point.y))
+            seq.append((pos.x, pos.y))
 
         return seq
 
@@ -144,20 +117,20 @@ class ArcAngles:
 
 class Circle:
     """Representation of a circle."""
-    def __init__(self, center: Position, radius: float) -> None:
-        self.circle: Final[sympy.Circle] = sympy.Circle(center.point, radius)
+    def __init__(self, center: sympy.Point, radius: float) -> None:
+        self.circle: Final[sympy.Circle] = sympy.Circle(center, radius)
 
-    def intersections(self, other: 'Circle', clockwise: bool) -> Optional[Position]:
+    def intersections(self, other: 'Circle', clockwise: bool) -> Optional[sympy.Point]:
         """Calculate the intersection point between 2 circles."""
         intersections: Final[List[sympy.Point]] = self.circle.intersection(other.circle)
 
         if len(intersections) == 0:
             return None
         elif len(intersections) == 1:
-            return Position.round_point(intersections[0])
+            return Point.round_point(intersections[0])
         elif len(intersections) == 2:
-            p1: Final[Position] = Position.round_point(intersections[0])
-            p2: Final[Position] = Position.round_point(intersections[1])
+            p1: Final[Point] = Point.round_point(intersections[0])
+            p2: Final[Point] = Point.round_point(intersections[1])
             angle_p1: float = self.angle(p1)
             angle_p2: float = self.angle(p2)
             are_clockwise: Final[bool] = (angle_p1 < angle_p2) if abs(angle_p2 - angle_p1) < 180 \
@@ -168,19 +141,19 @@ class Circle:
             else:
                 return p1
 
-    def position(self, angle_in_degrees: float) -> Position:
-        """Calculate the position of the circle corresponding to the given angle."""
+    def point(self, angle_in_degrees: float) -> sympy.Point:
+        """Calculate the point of the circle corresponding to the given angle."""
         from math import cos, sin, pi
         angle_in_radians = angle_in_degrees * pi / 180
         x = self.circle.center.x + (self.circle.radius * cos(angle_in_radians))
         y = self.circle.center.y + (self.circle.radius * sin(angle_in_radians))
 
-        return Position.from_xy(x, y)
+        return sympy.Point(round(x), round(y))
 
-    def angle(self, pos: Position) -> float:
-        """Calculate the angle corresponding to the given position."""
+    def angle(self, pos: sympy.Point) -> float:
+        """Calculate the angle corresponding to the given point."""
         from math import atan2, degrees
-        angle_in_radius = atan2(-(self.circle.center.y - pos.point.y), pos.point.x - self.circle.center.x)
+        angle_in_radius = atan2(-(self.circle.center.y - pos.y), pos.x - self.circle.center.x)
         angle_in_degrees = degrees(angle_in_radius)
         if angle_in_degrees >= 0:
             return angle_in_degrees
@@ -188,10 +161,6 @@ class Circle:
             return 360 + angle_in_degrees
 
     def perimeter(self, angles: ArcAngles) -> float:
-        from math import pi
-
-        circle_perimeter: Final[float] = 2 * pi * float(self.circle.radius)
-
         percent: Final[float] = (abs(angles.end_angle - angles.start_angle)) / 360
 
-        return circle_perimeter * percent
+        return self.circle.circumference * percent

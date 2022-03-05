@@ -1,4 +1,5 @@
 import math
+import sympy
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -37,14 +38,14 @@ class Instrument:
 
         return list_instruments
 
-    def draw(self, im: Image, center: geometry.Position) -> None:
+    def draw(self, im: Image, center: sympy.Point) -> None:
         global n_seats
         n_seats = n_seats + 1
 
         if self.path is None:
             radius: Final[int] = 25
-            ImageDraw.Draw(im).ellipse((center.point.x - radius, center.point.y - radius,
-                                        center.point.x + radius, center.point.y + radius),
+            ImageDraw.Draw(im).ellipse((center.x - radius, center.y - radius,
+                                        center.x + radius, center.y + radius),
                                        outline=(0, 0, 0), width=2)
             return
 
@@ -97,8 +98,7 @@ class Row:
 
         return self.instruments
 
-    def draw(self, im: Image,
-             center: geometry.Position, radius: int, min_distancing: int) -> None:
+    def draw(self, im: Image, center: sympy.Point, radius: int, min_distancing: int) -> None:
 
         # ImageDraw.Draw(im).arc(create_xy(center, Dimension(radius*2, radius*2)),
         #                        start=self.angles.start_angle, end=self.angles.end_angle, fill=(255, 255, 0))
@@ -109,22 +109,22 @@ class Row:
 
         instruments: Final[List[Instrument]] = self.get_instruments_to_use(perimeter, min_distancing)
 
-        current_position: geometry.Position = circle.position(self.angles.start_angle) if len(instruments) > 1 \
-            else circle.position((self.angles.start_angle + self.angles.end_angle) / 2)
+        current_point: sympy.Point = circle.point(self.angles.start_angle) if len(instruments) > 1 \
+            else circle.point((self.angles.start_angle + self.angles.end_angle) / 2)
 
-        second_position: Final[geometry.Position] = \
-            circle.position(self.angles.start_angle + (abs(self.angles.end_angle - self.angles.start_angle)
-                                                       / (len(instruments) - 1))) if len(instruments) > 1 \
-            else current_position
-        distancing: Final[float] = current_position.distance(second_position)
+        second_point: Final[sympy.Point] = \
+            circle.point(self.angles.start_angle + (abs(self.angles.end_angle - self.angles.start_angle)
+                                                    / (len(instruments) - 1))) if len(instruments) > 1 \
+            else current_point
+        distancing: Final[float] = current_point.distance(second_point)
 
         print(f"radius: {radius}cm distancing: {int(distancing)}cm.")
 
         for instrument in instruments:
-            instrument.draw(im, current_position)
+            instrument.draw(im, current_point)
             if distancing > 0:
-                current_position = circle.intersections(
-                    geometry.Circle(current_position, distancing), True)
+                current_point = circle.intersections(
+                    geometry.Circle(current_point, distancing), True)
 
 
 DEFAULT_ROW: Final[Row] = Row(None, None)
@@ -168,8 +168,7 @@ class Rows:
 
         return Rows(rows=list_rows, n_distancing_delta_first_row=distancing_first_row, n_distancing_row=distancing_row)
 
-    def draw(self, im: Image, center:
-             geometry.Position, distancing: int) -> None:
+    def draw(self, im: Image, center: sympy.Point, distancing: int) -> None:
         radius: int = self.n_distancing_delta_first_row
         for row_with_angles in self.rows_with_angles:
             radius = radius + max(distancing, self.n_distancing_row)
@@ -184,7 +183,7 @@ class Hall:
     def __init__(self, name: str, stage: geometry.Dimension, rows: Rows,
                  distancing: int, percussion_area: geometry.Areas,
                  hidden_areas: geometry.Areas,
-                 text_top_left: geometry.Position) -> None:
+                 text_top_left: sympy.Point) -> None:
         self.name: Final[str] = name
         self.stage: Final[geometry.Dimension] = stage
         self.rows: Final[Rows] = rows
@@ -192,7 +191,7 @@ class Hall:
         self.percussion_areas: Final[geometry.Areas] = percussion_area
         self.hidden_areas: Final[geometry.Areas] \
             = hidden_areas
-        self.text_top_left: Final[geometry.Position] = text_top_left
+        self.text_top_left: Final[sympy.Point] = text_top_left
 
     @staticmethod
     def from_dict(dct: dict) -> Optional["Hall"]:
@@ -219,7 +218,7 @@ class Hall:
         percussion_areas: Final[geometry.Areas] = geometry.Areas.from_dict(dct.get("percussion"))
         hidden_areas: Final[geometry.Areas] = geometry.Areas.from_dict(dct.get("hidden"))
 
-        legend_top_left: Final[Optional[geometry.Position]] = geometry.Position.from_dict(dct.get("legend"))
+        legend_top_left: Final[Optional[sympy.Point]] = geometry.Point.from_dict(dct.get("legend"))
 
         return Hall(name=name, stage=stage_dimension, rows=rows, distancing=distancing,
                     percussion_area=percussion_areas, hidden_areas=hidden_areas,
@@ -234,21 +233,21 @@ class Hall:
                 n_min_y: float = self.stage.width
                 n_max_y: float = 0
                 for pos in area.points:
-                    if pos.point.x < n_min_x:
-                        n_min_x = pos.point.x
-                    if pos.point.x > n_max_x:
-                        n_max_x = pos.point.x
-                    if pos.point.y < n_min_y:
-                        n_min_y = pos.point.y
-                    if pos.point.y > n_max_y:
-                        n_max_y = pos.point.y
+                    if pos.x < n_min_x:
+                        n_min_x = pos.x
+                    if pos.x > n_max_x:
+                        n_max_x = pos.x
+                    if pos.y < n_min_y:
+                        n_min_y = pos.y
+                    if pos.y > n_max_y:
+                        n_max_y = pos.y
 
-                center: geometry.Position = geometry.Position.from_xy((n_min_x + n_max_x)/2, (n_min_y + n_max_y)/2)
+                center: sympy.Point = sympy.Point((n_min_x + n_max_x)/2, (n_min_y + n_max_y)/2)
                 instrument_image_original = Image.open(Path(PATH + 'PAUKE.png'))
                 n_max_size = max(instrument_image_original.size[0], instrument_image_original.size[1])
                 instrument_image = instrument_image_original.reduce(max(1, int(n_max_size / 100)))
-                image.alpha_composite(instrument_image, (max(0, int(center.point.x - instrument_image.size[0] / 2)),
-                                                         max(0, int(center.point.y - instrument_image.size[1] / 2))))
+                image.alpha_composite(instrument_image, (max(0, round(center.x - instrument_image.size[0] / 2)),
+                                                         max(0, round(center.y - instrument_image.size[1] / 2))))
 
     def draw(self) -> None:
         global n_seats
@@ -258,9 +257,8 @@ class Hall:
 
         podest: Final[geometry.Dimension] = geometry.Dimension(100, 100)
 
-        center: Final[geometry.Position] = geometry.Position.from_xy(self.stage.length / 2, self.stage.width)
-        podest_center: Final[geometry.Position] = geometry.Position.from_xy(center.point.x,
-                                                                            center.point.y - podest.width/2)
+        center: Final[sympy.Point] = sympy.Point(self.stage.length / 2, self.stage.width)
+        podest_center: Final[sympy.Point] = sympy.Point(center.x, center.y - podest.width/2)
 
         im = Image.new("RGBA", (self.stage.length, self.stage.width),
                        (255, 255, 255))
@@ -280,14 +278,14 @@ class Hall:
 
         self.rows.draw(im, center, self.distancing)
 
-        draw.text((self.text_top_left.point.x, self.text_top_left.point.y), str(self.name) + "\n" +
+        draw.text((self.text_top_left.x, self.text_top_left.y), str(self.name) + "\n" +
                   "Number of seats " + str(n_seats) + "\n" +
                   "distancing: " + str(self.distancing) + " cm\n" +
                   "row distancing: " + str(self.rows.n_distancing_row) + "cm\n" +
                   "scale 1m", fill=(0, 0, 0), font=font)
         n_top_line: Final[int] = 120
-        draw.line(((self.text_top_left.point.x, self.text_top_left.point.y + n_top_line),
-                   (self.text_top_left.point.x + 100, self.text_top_left.point.y + n_top_line)), fill=(0, 0, 0),
+        draw.line(((self.text_top_left.x, self.text_top_left.y + n_top_line),
+                   (self.text_top_left.x + 100, self.text_top_left.y + n_top_line)), fill=(0, 0, 0),
                   width=3)
 
         im.save('export/' + self.name + '_distancing_' + str(self.distancing) + '_row_distancing_'

@@ -30,7 +30,7 @@ if True:
     #                                                 [stage.Row(geometry.ArcAngles(214, 237), None),
     #                                                  stage.Row(geometry.ArcAngles(303, 326), None)]], 50, 100),
     #                                      [(0, 0), (0, 250), (1500, 250), (1500, 0)],
-    #                                      test_hidden_areas, geometry.Position(10, 10))
+    #                                      test_hidden_areas, sympy.Point(10, 10))
     # test.draw(100)
 
 if False:
@@ -76,7 +76,7 @@ if False:
 
     bautzen_krone: Final[Hall] = Hall("Test_Bautzen_Krone", bautzen_krone_stage, Rows([None, None, None, None, None, None], 50, 150),
                                       ((0, 0), (0, 420), (bautzen_krone_stage.length, 420), (bautzen_krone_stage.length, 0)),
-                                      bautzen_krone_hidden_areas, geometry.Position(10, 10))
+                                      bautzen_krone_hidden_areas, sympy.Point(10, 10))
     bautzen_krone.draw(100)
 
 if False:
@@ -103,7 +103,7 @@ if False:
                                                                INSTRUMENT_TROMBONE, INSTRUMENT_TROMBONE, INSTRUMENT_TROMBONE])]
                                     ], 48, 200),
                                     ((340, 0), (340, 210), (990, 210), (990, 0)),
-                                    elsterwerda_hidden_areas, Position(10, 10))
+                                    elsterwerda_hidden_areas, sympy.Point(10, 10))
     elsterwerda_650.draw(200)
 
 if False:
@@ -136,7 +136,7 @@ if False:
                                create_polygon_from_line(260, 540, 675, 505, 0, 2),
                                create_polygon_from_line(675, 505, 1090, 405, 0, 2),
                                create_polygon_from_line(1150, 325, 1460, 325, 0, 2),
-                               create_polygon_from_line(1150, 430, 1460, 480, 0, 2)], Position(1240, 10))
+                               create_polygon_from_line(1150, 430, 1460, 480, 0, 2)], sympy.Point(1240, 10))
     plenarsaal.draw(150)
 
 if False:
@@ -160,7 +160,7 @@ if False:
                           ((540, 0), (290, 200), (290, 235), (1290, 235), (1290, 200), (1040, 0)),
                           [((0, 0), (0, 600), (290, 600), (290, 200), (540, 0),
                             (1040, 0), (1290, 200), (1290, 600), (1580, 600),
-                            (1580, 0), (0, 0))], Position(10, 10))
+                            (1580, 0), (0, 0))], sympy.Point(10, 10))
     riesa.draw(150)
 
 if False:
@@ -168,5 +168,5 @@ if False:
                              Rows([None, None, [Row(RowAngles(210, 330), None)],
                                    [Row(RowAngles(230, 310), None)], [Row(RowAngles(238.5, 301.5), None)]], 70, 150),
                              ((173, 300), (460, 0), (747, 300)),
-                             [((0, 480), (460, 0), (0,0)), ((460, 0), (920, 0), (920, 480))], Position(10, 10))
+                             [((0, 480), (460, 0), (0,0)), ((460, 0), (920, 0), (920, 480))], sympy.Point(10, 10))
     glauchau.draw(150)
