@@ -180,12 +180,12 @@ class Rows:
 
 
 class Hall:
-    def __init__(self, name: str, stage: geometry.Dimension, rows: Rows,
+    def __init__(self, name: str, stage: geometry.Polygon, rows: Rows,
                  distancing: int, percussion_area: geometry.Areas,
                  hidden_areas: geometry.Areas,
                  text_top_left: sympy.Point) -> None:
         self.name: Final[str] = name
-        self.stage: Final[geometry.Dimension] = stage
+        self.stage: Final[geometry.Polygon] = stage
         self.rows: Final[Rows] = rows
         self.distancing: Final[int] = distancing
         self.percussion_areas: Final[geometry.Areas] = percussion_area
@@ -200,7 +200,7 @@ class Hall:
             print("The hall does not have a name.")
             return None
 
-        stage_dimension: Final[Optional[geometry.Dimension]] = geometry.Dimension.from_dict(dct.get("stage"))
+        stage_dimension: Final[Optional[geometry.Polygon]] = geometry.Dimension.from_dict(dct.get("stage"))
         if stage_dimension is None:
             print(f"The hall {name} does not have dimension.")
             return None
@@ -242,17 +242,25 @@ class Hall:
 
         font = ImageFont.truetype("arial.ttf", 20)
 
-        podest: Final[geometry.Dimension] = geometry.Dimension(100, 100)
+        podest_x = 100
+        podest_y = 100
 
-        center: Final[sympy.Point] = sympy.Point(self.stage.length / 2, self.stage.width)
-        podest_center: Final[sympy.Point] = sympy.Point(center.x, center.y - podest.width/2)
+        stage_x: float = self.stage.bounds[2]
+        stage_y: float = self.stage.bounds[3]
 
-        im = Image.new("RGBA", (self.stage.length, self.stage.width),
+        center: Final[sympy.Point] = sympy.Point(stage_x / 2, stage_y)
+        podest_bottom_left: Final[sympy.Point] = sympy.Point(center.x - podest_x/2, center.y)
+        podest_top_left: Final[sympy.Point] = sympy.Point(podest_bottom_left.x, podest_bottom_left.y - podest_y)
+        podest_top_right: Final[sympy.Point] = sympy.Point(podest_top_left.x + podest_x, podest_top_left.y)
+        podest_bottom_right: Final[sympy.Point] = sympy.Point(podest_top_right.x, podest_bottom_left.y)
+
+        im = Image.new("RGBA", (stage_x, stage_y),
                        (255, 255, 255))
         draw = ImageDraw.Draw(im)
 
-        podest_xy = geometry.Polygon.create_rectangle(podest_center, podest)
-        draw.polygon(podest_xy.get_as_sequence(), fill=None, outline=(0, 0, 0))
+        draw.polygon(geometry.Polygon(podest_bottom_left, podest_top_left,
+                                      podest_top_right, podest_bottom_right).get_as_sequence(),
+                     fill=None, outline=(0, 0, 0))
 
         # Draw "Percussion line"
         self.draw_percussion_area(im)
