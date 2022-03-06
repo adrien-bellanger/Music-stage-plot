@@ -105,26 +105,18 @@ class ArcAngles:
 
 class Circle(sympy.Circle):
     """Representation of a circle."""
-    def intersections(self, other: sympy.Circle, clockwise: bool) -> Optional[sympy.Point]:
-        """Calculate the intersection point between 2 circles."""
-        intersections: Final[List[sympy.Point]] = self.intersection(other)
-
+    def sort_points(self, points: List[sympy.Point], clockwise: bool) -> List[sympy.Point]:
+        return sorted(points, key=self.angle, reverse=clockwise)
+    
+    def get_first_intersection(self, intersections: List[sympy.Point], clockwise: bool) -> Optional[sympy.Point]:
+        """Get the first intersection from the given points in clockwise direction."""
         if len(intersections) == 0:
             return None
         elif len(intersections) == 1:
             return Point.round_point(intersections[0])
-        elif len(intersections) == 2:
-            p1: Final[Point] = Point.round_point(intersections[0])
-            p2: Final[Point] = Point.round_point(intersections[1])
-            angle_p1: float = self.angle(p1)
-            angle_p2: float = self.angle(p2)
-            are_clockwise: Final[bool] = (angle_p1 < angle_p2) if abs(angle_p2 - angle_p1) < 180 \
-                else not (angle_p1 < angle_p2)
 
-            if are_clockwise == clockwise:
-                return p2
-            else:
-                return p1
+        sorted_intersections: Final[List[sympy.Point]] = self.sort_points(intersections, clockwise)
+        return Point.round_point(sorted_intersections[0])
 
     def point(self, angle_in_degrees: float) -> sympy.Point:
         """Calculate the point of the circle corresponding to the given angle."""
@@ -140,7 +132,7 @@ class Circle(sympy.Circle):
         from math import atan2, degrees
         angle_in_radius = atan2(-(self.center.y - pos.y), pos.x - self.center.x)
         angle_in_degrees = degrees(angle_in_radius)
-        if angle_in_degrees >= 0:
+        if angle_in_degrees > 0:
             return angle_in_degrees
         else:
             return 360 + angle_in_degrees

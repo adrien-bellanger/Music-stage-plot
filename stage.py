@@ -10,6 +10,7 @@ import geometry
 n_seats = 0
 
 DEFAULT_ANGLES: Final[geometry.ArcAngles] = geometry.ArcAngles(190, 350)
+RADIUS_SEAT: Final[float] = 25
 
 
 class Instrument:
@@ -43,9 +44,8 @@ class Instrument:
         n_seats = n_seats + 1
 
         if self.path is None:
-            radius: Final[int] = 25
-            ImageDraw.Draw(im).ellipse((center.x - radius, center.y - radius,
-                                        center.x + radius, center.y + radius),
+            ImageDraw.Draw(im).ellipse((center.x - RADIUS_SEAT, center.y - RADIUS_SEAT,
+                                        center.x + RADIUS_SEAT, center.y + RADIUS_SEAT),
                                        outline=(0, 0, 0), width=2)
             return
 
@@ -98,34 +98,6 @@ class Row:
 
         return self.instruments
 
-    def draw(self, im: Image, center: sympy.Point, radius: int, min_distancing: int) -> None:
-
-        # ImageDraw.Draw(im).arc(create_xy(center, Dimension(radius*2, radius*2)),
-        #                        start=self.angles.start_angle, end=self.angles.end_angle, fill=(255, 255, 0))
-
-        circle: Final[geometry.Circle] = geometry.Circle(center, radius)
-
-        perimeter: Final[float] = circle.perimeter(self.angles)
-
-        instruments: Final[List[Instrument]] = self.get_instruments_to_use(perimeter, min_distancing)
-
-        current_point: sympy.Point = circle.point(self.angles.start_angle) if len(instruments) > 1 \
-            else circle.point((self.angles.start_angle + self.angles.end_angle) / 2)
-
-        second_point: Final[sympy.Point] = \
-            circle.point(self.angles.start_angle + (abs(self.angles.end_angle - self.angles.start_angle)
-                                                    / (len(instruments) - 1))) if len(instruments) > 1 \
-            else current_point
-        distancing: Final[float] = current_point.distance(second_point)
-
-        print(f"radius: {radius}cm distancing: {int(distancing)}cm.")
-
-        for instrument in instruments:
-            instrument.draw(im, current_point)
-            if distancing > 0:
-                current_point = circle.intersections(
-                    geometry.Circle(current_point, distancing), True)
-
 
 DEFAULT_ROW: Final[Row] = Row(None, None)
 
@@ -168,16 +140,6 @@ class Rows:
 
         return Rows(rows=list_rows, n_distancing_delta_first_row=distancing_first_row, n_distancing_row=distancing_row)
 
-    def draw(self, im: Image, center: sympy.Point, distancing: int) -> None:
-        radius: int = self.n_distancing_delta_first_row
-        for row_with_angles in self.rows_with_angles:
-            radius = radius + max(distancing, self.n_distancing_row)
-            if row_with_angles is None:
-                DEFAULT_ROW.draw(im, center, radius, distancing)
-            else:
-                for row_parts in row_with_angles:
-                    row_parts.draw(im, center, radius, distancing)
-
 
 class Hall:
     def __init__(self, name: str, stage: geometry.Polygon, rows: Rows,
@@ -192,6 +154,7 @@ class Hall:
         self.hidden_areas: Final[geometry.Areas] \
             = hidden_areas
         self.text_top_left: Final[sympy.Point] = text_top_left
+        self.rows_center: Final[sympy.Point] = sympy.Point(round(self.stage.bounds[2] / 2), self.stage.bounds[3])
 
     @staticmethod
     def from_dict(dct: dict) -> Optional["Hall"]:
@@ -248,8 +211,7 @@ class Hall:
         stage_x: float = self.stage.bounds[2]
         stage_y: float = self.stage.bounds[3]
 
-        center: Final[sympy.Point] = sympy.Point(stage_x / 2, stage_y)
-        podest_bottom_left: Final[sympy.Point] = sympy.Point(center.x - podest_x/2, center.y)
+        podest_bottom_left: Final[sympy.Point] = sympy.Point(self.rows_center.x - podest_x / 2, self.rows_center.y)
         podest_top_left: Final[sympy.Point] = sympy.Point(podest_bottom_left.x, podest_bottom_left.y - podest_y)
         podest_top_right: Final[sympy.Point] = sympy.Point(podest_top_left.x + podest_x, podest_top_left.y)
         podest_bottom_right: Final[sympy.Point] = sympy.Point(podest_top_right.x, podest_bottom_left.y)
@@ -271,7 +233,7 @@ class Hall:
 
         print("Hall " + self.name)
 
-        self.rows.draw(im, center, self.distancing)
+        self.draw_rows(im)
 
         draw.text((self.text_top_left.x, self.text_top_left.y), str(self.name) + "\n" +
                   "Number of seats " + str(n_seats) + "\n" +
@@ -285,3 +247,51 @@ class Hall:
 
         im.save('export/' + self.name + '_distancing_' + str(self.distancing) + '_row_distancing_'
                 + str(self.rows.n_distancing_row) + '.png')
+
+    def draw_rows(self, im: Image) -> None:
+        radius: int = self.rows.n_distancing_delta_first_row
+        for row_with_angles in self.rows.rows_with_angles:
+            radius = radius + max(self.distancing, self.rows.n_distancing_row)
+            if row_with_angles is None:
+                self.draw_row(im, DEFAULT_ROW, radius)
+            else:
+                for row_parts in row_with_angles:
+                    self.draw_row(im, row_parts, radius)
+
+    def draw_row(self, im: Image, row: Row, radius: int) -> None:
+        # ImageDraw.Draw(im).arc(create_xy(center, Dimension(radius*2, radius*2)),
+        #                        start=self.angles.start_angle, end=self.angles.end_angle, fill=(255, 255, 0))
+
+        circle: Final[geometry.Circle] = geometry.Circle(self.rows_center, radius)
+
+        intersections_with_stage = circle.sort_points(circle.intersection(self.stage), False)
+
+        min_start_angle: Final[int] = round(circle.angle(intersections_with_stage[0]))
+        max_end_angle: Final[int] = round(circle.angle(intersections_with_stage[1]))
+
+        angles: Final[geometry.ArcAngles] = geometry.ArcAngles(max(row.angles.start_angle, min_start_angle),
+                                                               min(row.angles.end_angle, max_end_angle))
+
+        perimeter: Final[float] = circle.perimeter(angles)
+
+        instruments: Final[List[Instrument]] = row.get_instruments_to_use(perimeter, self.distancing)
+
+        current_point: sympy.Point = circle.point(angles.start_angle) if len(instruments) > 1 \
+            else circle.point((angles.start_angle + angles.end_angle) / 2)
+
+        second_point: Final[sympy.Point] = circle.point(angles.start_angle
+                                                        + (abs(angles.end_angle - angles.start_angle)
+                                                           / (len(instruments) - 1))) \
+            if len(instruments) > 1 \
+            else current_point
+
+        distancing: Final[float] = current_point.distance(second_point)
+
+        print(f"radius: {radius}cm distancing: {int(distancing)}cm.")
+
+        for instrument in instruments:
+            instrument.draw(im, current_point)
+            if distancing > 0:
+                current_point = circle.get_first_intersection(circle.intersection(geometry.Circle(current_point,
+                                                                                                  distancing)),
+                                                              True)

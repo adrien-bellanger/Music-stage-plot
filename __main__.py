@@ -1,12 +1,11 @@
-from typing import Final, List, Sequence, Tuple, Union, Optional
+from typing import Final, Tuple, Union, Optional
 
-import geometry
 import stage
 
-if False:
-    from PIL import Image
-    im = Image.new("RGBA", (100, 100))
-    im.save(stage.INSTRUMENT_PATH + 'NO_INSTRUMENT.png')
+# if False:
+#     from PIL import Image
+#     im = Image.new("RGBA", (100, 100))
+#     im.save(stage.INSTRUMENT_PATH + 'NO_INSTRUMENT.png')
 
 
 def create_polygon_from_line(start_x: int, start_y: int, end_x:int, end_y:int, half_width_x: int, half_width_y: int) -> Union[float, Tuple[float, float]]:
@@ -20,7 +19,8 @@ if True:
         print("Starting to convert json decoding")
         test_as_dict = json.load(read_file)
         test_as_object: Final[Optional[stage.Hall]] = stage.Hall.from_dict(test_as_dict)
-        test_as_object.draw()
+        if test_as_object is not None:
+            test_as_object.draw()
 
     # test_stage: Final[geometry.Dimension] = geometry.Dimension(1300, 900)
     # test_hidden_areas: Final[Sequence[List[Tuple[float, float]]]] = []

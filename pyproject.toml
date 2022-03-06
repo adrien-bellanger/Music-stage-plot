@@ -8,6 +8,7 @@ authors = ["Adrien Bellanger <darktable@bellanger-fr.de>"]
 python = "^3.9"
 sympy = "^1.9"
 Pillow = "^9.0.1"
+mypy = "^0.931"
 
 [tool.poetry.dev-dependencies]
 
