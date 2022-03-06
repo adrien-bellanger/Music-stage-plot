@@ -148,6 +148,7 @@ class Hall:
                  text_top_left: sympy.Point) -> None:
         self.name: Final[str] = name
         self.stage: Final[geometry.Polygon] = stage
+        self.stage_for_seats: Final[geometry.Polygon] = stage.enlarge(int(-RADIUS_SEAT))
         self.rows: Final[Rows] = rows
         self.distancing: Final[int] = distancing
         self.percussion_areas: Final[geometry.Areas] = percussion_area
@@ -264,10 +265,10 @@ class Hall:
 
         circle: Final[geometry.Circle] = geometry.Circle(self.rows_center, radius)
 
-        intersections_with_stage = circle.sort_points(circle.intersection(self.stage), False)
+        intersections_with_stage = circle.sort_points(circle.intersection(self.stage_for_seats), False)
 
-        min_start_angle: Final[int] = round(circle.angle(intersections_with_stage[0]))
-        max_end_angle: Final[int] = round(circle.angle(intersections_with_stage[1]))
+        min_start_angle: Final[float] = circle.angle(intersections_with_stage[0])
+        max_end_angle: Final[float] = circle.angle(intersections_with_stage[1])
 
         angles: Final[geometry.ArcAngles] = geometry.ArcAngles(max(row.angles.start_angle, min_start_angle),
                                                                min(row.angles.end_angle, max_end_angle))

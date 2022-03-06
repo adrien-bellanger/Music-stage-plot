@@ -36,11 +36,30 @@ class Polygon(sympy.Polygon):
         return None
 
     def get_as_sequence(self) -> Sequence[Tuple[int, int]]:
-        seq: Sequence[Tuple[int, int]] = []
+        seq: List[Tuple[int, int]] = []
         for pos in self.vertices:
             seq.append((pos.x, pos.y))
 
         return seq
+
+    def distance_from_second_object(self, points: Tuple[sympy.Point, sympy.Point]) -> float:
+        return self.distance(points[1])
+
+    def enlarge(self, extra: int) -> "Polygon":
+        new_vertices: List[sympy.Point] = []
+            
+        for point in self.vertices:
+            points: List[Tuple[sympy.Point, sympy.Point]] = \
+                [
+                    (sympy.Point(point.x + extra, point.y + extra), sympy.Point(point.x + 1, point.y + 1)),
+                    (sympy.Point(point.x - extra, point.y + extra), sympy.Point(point.x - 1, point.y + 1)),
+                    (sympy.Point(point.x - extra, point.y - extra), sympy.Point(point.x - 1, point.y - 1)),
+                    (sympy.Point(point.x + extra, point.y - extra), sympy.Point(point.x + 1, point.y - 1)),
+                ]
+            sorted_points = sorted(points, key=self.distance_from_second_object, reverse=True)
+            new_vertices.append(sorted_points[0][0])
+
+        return Polygon(*new_vertices)
 
 
 class Dimension:
@@ -84,9 +103,9 @@ class Areas(List[Area]):
 
 class ArcAngles:
     """Define begin and end angles of an arc."""
-    def __init__(self, start_angle: int, end_angle: int) -> None:
-        self.start_angle: Final[int] = start_angle
-        self.end_angle: Final[int] = end_angle
+    def __init__(self, start_angle: float, end_angle: float) -> None:
+        self.start_angle: Final[float] = start_angle
+        self.end_angle: Final[float] = end_angle
 
     @staticmethod
     def from_dict(dct: Optional[dict]) -> Optional["ArcAngles"]:
