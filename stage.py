@@ -10,7 +10,7 @@ import geometry
 n_seats = 0
 
 DEFAULT_ANGLES: Final[geometry.ArcAngles] = geometry.ArcAngles(190, 350)
-RADIUS_SEAT: Final[float] = 25
+RADIUS_SEAT: Final[int] = 25
 
 
 class Instrument:
@@ -99,9 +99,6 @@ class Row:
         return self.instruments
 
 
-DEFAULT_ROW: Final[Row] = Row(None, None)
-
-
 class Rows:
     def __init__(self, rows: List[Optional[List[Row]]],
                  n_distancing_delta_first_row: int,
@@ -138,7 +135,13 @@ class Rows:
         distancing_row: Final[Optional[int]] = dct.get("distancing")
         distancing_first_row: Final[Optional[int]] = dct.get("distancingFirstRow")
 
-        return Rows(rows=list_rows, n_distancing_delta_first_row=distancing_first_row, n_distancing_row=distancing_row)
+        if distancing_row is None:
+            print(f"The distancing between rows should not be None")
+            return None
+
+        return Rows(rows=list_rows,
+                    n_distancing_delta_first_row=distancing_first_row if distancing_first_row is not None else 0,
+                    n_distancing_row=distancing_row)
 
 
 class Hall:
@@ -148,12 +151,12 @@ class Hall:
                  text_top_left: sympy.Point) -> None:
         self.name: Final[str] = name
         self.stage: Final[geometry.Polygon] = stage
-        self.stage_for_seats: Final[geometry.Polygon] = stage.enlarge(int(-RADIUS_SEAT))
+        self.stage_for_seats: Final[geometry.Polygon] = stage.enlarge(-RADIUS_SEAT)
         self.rows: Final[Rows] = rows
         self.distancing: Final[int] = distancing
         self.percussion_areas: Final[geometry.Areas] = percussion_area
-        self.hidden_areas: Final[geometry.Areas] \
-            = hidden_areas
+        self.hidden_areas: Final[geometry.Areas] = hidden_areas
+        self.hidden_areas_for_seats: Final[geometry.Areas] = self.hidden_areas.enlarge(RADIUS_SEAT)
         self.text_top_left: Final[sympy.Point] = text_top_left
         self.rows_center: Final[sympy.Point] = sympy.Point(round(self.stage.bounds[2] / 2), self.stage.bounds[3])
 

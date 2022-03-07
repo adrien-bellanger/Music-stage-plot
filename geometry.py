@@ -24,7 +24,7 @@ class Polygon(sympy.Polygon):
     def from_dict(dct: dict) -> Optional["Polygon"]:
         list_polygon: Optional[List[dict]] = dct.get("polygon")
         if list_polygon is not None:
-            points: Sequence[sympy.Point] = []
+            points: List[sympy.Point] = []
             for pos in list_polygon:
                 new_pos: Optional[sympy.Point] = Point.from_dict(pos)
 
@@ -92,13 +92,21 @@ class Area(Union[Polygon]):
 class Areas(List[Area]):
     @staticmethod
     def from_dict(list_areas: List[dict]) -> "Areas":
-        areas: Areas = list()
+        areas: List[Area] = list()
         for dict_area in list_areas:
             new_area: Optional[Area] = Area.from_dict(dict_area)
             if new_area is not None:
                 areas.append(new_area)
 
-        return areas
+        return Areas(areas)
+
+    def enlarge(self, extra: int) -> "Areas":
+        new_areas: List[Area] = []
+        for area in self:
+            if isinstance(area, Polygon):
+                new_areas.append(area.enlarge(extra))
+
+        return Areas(new_areas)
 
 
 class ArcAngles:
