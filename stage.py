@@ -259,20 +259,19 @@ class Hall:
             print(f"radius: {radius} cm.")
             circle: geometry.Circle = geometry.Circle(self.rows_center, radius)
 
-            intersections_with_stage = circle.sort_points(circle.intersection(self.stage_for_seats), False)
+            arcs_on_stage: List[geometry.ArcAngles] = geometry.ArcAngles.reduce_to(
+                [DEFAULT_ANGLES],
+                circle.intersection_arc_angles(self.stage_for_seats))
 
-            min_start_angle: float = circle.angle(intersections_with_stage[0])
-            max_end_angle: float = circle.angle(intersections_with_stage[1])
-
-            if row_with_angles is None:
-                self.draw_row(im, Row(geometry.ArcAngles(max(DEFAULT_ANGLES.start_angle, min_start_angle),
-                                                         min(DEFAULT_ANGLES.end_angle, max_end_angle)), None), circle)
-            else:
-                for row_parts in row_with_angles:
-                    angles: geometry.ArcAngles = geometry.ArcAngles(max(row_parts.angles.start_angle, min_start_angle),
-                                                                    min(row_parts.angles.end_angle, max_end_angle)) \
-                        if row_parts is not None else geometry.ArcAngles(max(DEFAULT_ANGLES.start_angle, min_start_angle), min(DEFAULT_ANGLES.end_angle, max_end_angle))
-                    self.draw_row(im, Row(angles, row_parts.instruments), circle)
+            for arc in arcs_on_stage:
+                if row_with_angles is None:
+                    self.draw_row(im, Row(arc, None), circle)
+                else:
+                    for row_parts in row_with_angles:
+                        angles: geometry.ArcAngles = geometry.ArcAngles(max(row_parts.angles.start_angle, min_start_angle),
+                                                                        min(row_parts.angles.end_angle, max_end_angle)) \
+                            if row_parts is not None else geometry.ArcAngles(max(DEFAULT_ANGLES.start_angle, min_start_angle), min(DEFAULT_ANGLES.end_angle, max_end_angle))
+                        self.draw_row(im, Row(angles, row_parts.instruments), circle)
 
     def draw_row(self, im: Image, row: Row, circle: geometry.Circle) -> None:
         # ImageDraw.Draw(im).arc(create_xy(center, Dimension(radius*2, radius*2)),

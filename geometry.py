@@ -129,6 +129,25 @@ class ArcAngles:
 
         return ArcAngles(start_angle=start, end_angle=end)
 
+    @staticmethod
+    def reduce_to(sorted_arcs: List["ArcAngles"], sorted_allowed_arcs: List["ArcAngles"]) -> List["ArcAngles"]:
+        if len(sorted_allowed_arcs) == 0:
+            return sorted_arcs
+
+        new_arcs: List["ArcAngles"] = []
+
+        for arc in sorted_arcs:
+            for allowed_arc in sorted_allowed_arcs:
+                if allowed_arc.start_angle >= arc.end_angle:
+                    break
+                elif allowed_arc.end_angle <= arc.start_angle:
+                    continue
+
+                new_arcs.append(ArcAngles(max(arc.start_angle, allowed_arc.start_angle),
+                                          min(arc.end_angle, allowed_arc.end_angle)))
+
+        return new_arcs
+
 
 class Circle(sympy.Circle):
     """Representation of a circle."""
@@ -144,6 +163,34 @@ class Circle(sympy.Circle):
 
         sorted_intersections: Final[List[sympy.Point]] = self.sort_points(intersections, clockwise)
         return Point.round_point(sorted_intersections[0])
+
+    def intersection_arc_angles(self, polygon: sympy.Polygon) -> List[ArcAngles]:
+        angles: List[ArcAngles] = []
+        intersections_with_stage = self.sort_points(self.intersection(polygon), False)
+        number_of_intersection: Final[int] = len(intersections_with_stage)
+        if number_of_intersection == 0:
+            return angles
+
+        i: int = 0
+        while i < number_of_intersection:
+            current_angle: float = self.angle(intersections_with_stage[i])
+            is_last: bool = i == number_of_intersection - 1
+            other_angle: float = self.angle(intersections_with_stage[i-1]) if i > 0 else 0
+            arc_middle: sympy.Point = self.point((other_angle + current_angle) / 2)
+            if polygon.encloses_point(arc_middle):
+                angles.append(ArcAngles(other_angle, current_angle))
+                i = i + 2
+            else:
+                i = i + 1
+
+            if is_last:
+                other_angle = 360
+                arc_middle = self.point((other_angle + current_angle) / 2)
+                if polygon.encloses_point(arc_middle):
+                    angles.append(ArcAngles(current_angle, 360))
+                break
+
+        return angles
 
     def point(self, angle_in_degrees: float) -> sympy.Point:
         """Calculate the point of the circle corresponding to the given angle."""
