@@ -290,6 +290,8 @@ class Hall:
                             else:
                                 self.draw_row(im, Row(allowed_arc, None), circle)
 
+                            i_current_arc = i_current_arc + 1
+
     def draw_row(self, im: Image, row: Row, circle: geometry.Circle) -> None:
         # ImageDraw.Draw(im).arc(create_xy(center, Dimension(radius*2, radius*2)),
         #                        start=self.angles.start_angle, end=self.angles.end_angle, fill=(255, 255, 0))
