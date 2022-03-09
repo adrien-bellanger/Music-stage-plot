@@ -158,7 +158,8 @@ class Hall:
         self.hidden_areas: Final[geometry.Areas] = hidden_areas
         self.hidden_areas_for_seats: Final[geometry.Areas] = self.hidden_areas.enlarge(RADIUS_SEAT)
         self.text_top_left: Final[sympy.Point] = text_top_left
-        self.rows_center: Final[sympy.Point] = sympy.Point(round(self.stage.bounds[2] / 2), self.stage.bounds[3])
+        self.rows_center: Final[sympy.Point] = sympy.Point(round(self.stage.polygon.bounds[2] / 2),
+                                                           self.stage.polygon.bounds[3])
 
     @staticmethod
     def from_dict(dct: dict) -> Optional["Hall"]:
@@ -196,7 +197,7 @@ class Hall:
             if isinstance(area, geometry.Polygon):
                 ImageDraw.Draw(image).polygon(area.get_as_sequence(), outline="black", fill=(240, 240, 240))
 
-                center: sympy.Point = area.centroid
+                center: sympy.Point = area.polygon.centroid
                 instrument_image_original = Image.open(Path(PATH + 'PAUKE.png'))
                 n_max_size = max(instrument_image_original.size[0], instrument_image_original.size[1])
                 instrument_image = instrument_image_original.reduce(max(1, int(n_max_size / 100)))
@@ -212,8 +213,8 @@ class Hall:
         podest_x = 100
         podest_y = 100
 
-        stage_x: float = self.stage.bounds[2]
-        stage_y: float = self.stage.bounds[3]
+        stage_x: float = self.stage.polygon.bounds[2]
+        stage_y: float = self.stage.polygon.bounds[3]
 
         podest_bottom_left: Final[sympy.Point] = sympy.Point(self.rows_center.x - podest_x / 2, self.rows_center.y)
         podest_top_left: Final[sympy.Point] = sympy.Point(podest_bottom_left.x, podest_bottom_left.y - podest_y)
@@ -264,7 +265,7 @@ class Hall:
                 circle.intersection_arc_angles(self.stage_for_seats))
 
             for hidden_area in self.hidden_areas_for_seats:
-                if isinstance(hidden_area, sympy.Polygon):
+                if isinstance(hidden_area, geometry.Polygon):
                     arcs_on_stage = geometry.ArcAngles.exclude(
                         arcs_on_stage,
                         circle.intersection_arc_angles(hidden_area)

@@ -18,8 +18,11 @@ class Point:
         return sympy.Point(x, y)
 
 
-class Polygon(sympy.Polygon):
+class Polygon:
     """Representation of a polygon."""
+    def __init__(self, *args) -> None:
+        self.polygon: Final[sympy.Polygon] = sympy.Polygon(*args)
+
     @staticmethod
     def from_dict(dct: dict) -> Optional["Polygon"]:
         list_polygon: Optional[List[dict]] = dct.get("polygon")
@@ -37,18 +40,18 @@ class Polygon(sympy.Polygon):
 
     def get_as_sequence(self) -> Sequence[Tuple[int, int]]:
         seq: List[Tuple[int, int]] = []
-        for pos in self.vertices:
+        for pos in self.polygon.vertices:
             seq.append((pos.x, pos.y))
 
         return seq
 
     def distance_from_second_object(self, points: Tuple[sympy.Point, sympy.Point]) -> float:
-        return self.distance(points[1])
+        return self.polygon.distance(points[1])
 
     def enlarge(self, extra: int) -> "Polygon":
         new_vertices: List[sympy.Point] = []
             
-        for point in self.vertices:
+        for point in self.polygon.vertices:
             points: List[Tuple[sympy.Point, sympy.Point]] = \
                 [
                     (sympy.Point(point.x + extra, point.y + extra), sympy.Point(point.x + 1, point.y + 1)),
@@ -189,9 +192,9 @@ class Circle(sympy.Circle):
         sorted_intersections: Final[List[sympy.Point]] = self.sort_points(intersections, clockwise)
         return Point.round_point(sorted_intersections[0])
 
-    def intersection_arc_angles(self, polygon: sympy.Polygon) -> List[ArcAngles]:
+    def intersection_arc_angles(self, polygon: Polygon) -> List[ArcAngles]:
         angles: List[ArcAngles] = []
-        intersections_with_stage = self.sort_points(self.intersection(polygon), False)
+        intersections_with_stage = self.sort_points(self.intersection(polygon.polygon), False)
         number_of_intersection: Final[int] = len(intersections_with_stage)
         if number_of_intersection == 0:
             return angles
@@ -202,7 +205,7 @@ class Circle(sympy.Circle):
             is_last: bool = i == number_of_intersection - 1
             other_angle: float = self.angle(intersections_with_stage[i-1]) if i > 0 else 0
             arc_middle: sympy.Point = self.point((other_angle + current_angle) / 2)
-            if polygon.encloses_point(arc_middle):
+            if polygon.polygon.encloses_point(arc_middle):
                 angles.append(ArcAngles(other_angle, current_angle))
                 i = i + 2
             else:
@@ -211,7 +214,7 @@ class Circle(sympy.Circle):
             if is_last:
                 other_angle = 360
                 arc_middle = self.point((other_angle + current_angle) / 2)
-                if polygon.encloses_point(arc_middle):
+                if polygon.polygon.encloses_point(arc_middle):
                     angles.append(ArcAngles(current_angle, 360))
                 break
 
