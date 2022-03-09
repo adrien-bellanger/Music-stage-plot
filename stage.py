@@ -263,15 +263,32 @@ class Hall:
                 [DEFAULT_ANGLES],
                 circle.intersection_arc_angles(self.stage_for_seats))
 
+            for hidden_area in self.hidden_areas_for_seats:
+                if isinstance(hidden_area, sympy.Polygon):
+                    arcs_on_stage = geometry.ArcAngles.exclude(
+                        arcs_on_stage,
+                        circle.intersection_arc_angles(hidden_area)
+                    )
+
             for arc in arcs_on_stage:
                 if row_with_angles is None:
                     self.draw_row(im, Row(arc, None), circle)
                 else:
-                    for row_parts in row_with_angles:
-                        angles: geometry.ArcAngles = geometry.ArcAngles(max(row_parts.angles.start_angle, min_start_angle),
-                                                                        min(row_parts.angles.end_angle, max_end_angle)) \
-                            if row_parts is not None else geometry.ArcAngles(max(DEFAULT_ANGLES.start_angle, min_start_angle), min(DEFAULT_ANGLES.end_angle, max_end_angle))
-                        self.draw_row(im, Row(angles, row_parts.instruments), circle)
+                    if len(row_with_angles) == len(arcs_on_stage):
+                        i_current_arc: int = 0
+                        while i_current_arc < len(row_with_angles):
+                            row_part = row_with_angles[i_current_arc]
+                            allowed_arc: geometry.ArcAngles = arcs_on_stage[i_current_arc]
+                            if row_part is not None:
+                                self.draw_row(im,
+                                              Row(
+                                                  geometry.ArcAngles(
+                                                        max(row_part.angles.start_angle, allowed_arc.start_angle),
+                                                        min(row_part.angles.end_angle, allowed_arc.end_angle)),
+                                                  row_part.instruments),
+                                              circle)
+                            else:
+                                self.draw_row(im, Row(allowed_arc, None), circle)
 
     def draw_row(self, im: Image, row: Row, circle: geometry.Circle) -> None:
         # ImageDraw.Draw(im).arc(create_xy(center, Dimension(radius*2, radius*2)),

@@ -148,6 +148,31 @@ class ArcAngles:
 
         return new_arcs
 
+    @staticmethod
+    def exclude(sorted_arcs: List["ArcAngles"], sorted_excluded_arcs: List["ArcAngles"]) -> List["ArcAngles"]:
+        if len(sorted_excluded_arcs) == 0:
+            return sorted_arcs
+
+        current_arcs: List["ArcAngles"] = sorted_arcs
+
+        for excluded_arc in sorted_excluded_arcs:
+            new_arcs: List["ArcAngles"] = []
+            for arc in current_arcs:
+                if excluded_arc.start_angle >= arc.end_angle:
+                    new_arcs.append(arc)
+                elif excluded_arc.end_angle <= arc.start_angle:
+                    new_arcs.append(arc)
+                elif excluded_arc.start_angle <= arc.start_angle:
+                    new_arcs.append(ArcAngles(excluded_arc.end_angle, arc.end_angle))
+                elif excluded_arc.end_angle >= arc.end_angle:
+                    new_arcs.append(ArcAngles(arc.start_angle, excluded_arc.start_angle))
+                else:
+                    new_arcs.append(ArcAngles(arc.start_angle, excluded_arc.start_angle))
+                    new_arcs.append(ArcAngles(excluded_arc.end_angle, arc.end_angle))
+            current_arcs = new_arcs
+
+        return current_arcs
+
 
 class Circle(sympy.Circle):
     """Representation of a circle."""
