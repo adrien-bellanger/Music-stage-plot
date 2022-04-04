@@ -18,26 +18,34 @@ class Instrument:
         self.path: Final[Optional[Path]] = path
 
     @staticmethod
-    def from_dict(list_dct: Optional[List[Optional[str]]]) -> Optional[List["Instrument"]]:
+    def from_dict(list_dct: Optional[List[Optional[List[Optional[str]]]]]) \
+            -> Optional[List[Optional[List["Instrument"]]]]:
         global INSTRUMENTS
         if list_dct is None:
             return None
 
-        list_instruments: List["Instrument"]
-        for s_instrument in list_dct:
-            instrument: Optional[Instrument] = INSTRUMENTS.get(s_instrument)
-            if instrument is not None:
-                list_instruments.append(instrument)
+        list_instruments_per_part: List[Optional[List["Instrument"]]] = []
+        for s_instruments in list_dct:
+            if s_instruments is None:
+                list_instruments_per_part.append(None)
             else:
-                print(f"The chosen instrument {s_instrument} does not exist, only the following are accepted: "
-                      f"{INSTRUMENTS.keys}.")
-                list_instruments.append(INSTRUMENTS[None])
+                list_instruments: List["Instrument"] = []
+                for s_instrument in s_instruments:
+                    instrument: Optional[Instrument] = INSTRUMENTS.get(s_instrument)
+                    if instrument is not None:
+                        list_instruments.append(instrument)
+                    else:
+                        print(f"The chosen instrument {s_instrument} does not exist, only the following are accepted: "
+                              f"{INSTRUMENTS.keys}.")
+                        list_instruments.append(INSTRUMENTS[None])
 
-        if len(list_instruments) == 0:
-            print(f"An empty list of instrument was specified, it is not valid (will be replaced by None).")
-            return None
+                if len(list_instruments) == 0:
+                    print(f"An empty list of instrument was specified, it is not valid (will be replaced by None).")
+                    return None
 
-        return list_instruments
+                list_instruments_per_part.append(list_instruments)
+
+        return list_instruments_per_part
 
     def draw(self, im: Image, center: sympy.Point) -> None:
         global n_seats
@@ -76,57 +84,64 @@ INSTRUMENTS: Final[Dict[Optional[str], "Instrument"]] = {
 
 
 class Row:
-    def __init__(self, angles: Optional[geometry.ArcAngles], instruments: Optional[List[Instrument]]) -> None:
-        self.angles: Final[geometry.ArcAngles] = DEFAULT_ANGLES if angles is None else angles
-        self.instruments: Final[Optional[List[Instrument]]] = instruments
+    def __init__(self, angles: Optional[List[geometry.ArcAngles]],
+                 instruments: Optional[List[Optional[List[Instrument]]]],
+                 radius: Optional[int], center: Optional[sympy.Point]) -> None:
+        self.angles: Final[List[geometry.ArcAngles]] = [DEFAULT_ANGLES] if angles is None else angles
+        self.instruments: Final[Optional[List[Optional[List[Instrument]]]]] = instruments
+        self.radius: Final[Optional[int]] = radius
+        self.center: Final[Optional[sympy.Point]] = center
 
     @staticmethod
     def from_dict(dct: dict) -> Optional["Row"]:
-        angles: Optional[geometry.ArcAngles] = geometry.ArcAngles.from_dict(dct.get("angles"))
-        instruments: Optional[List[Instrument]] = Instrument.from_dict(dct.get("instruments"))
+        angles: Optional[List[geometry.ArcAngles]] = geometry.ArcAngles.from_list(dct.get("angles"))
+        instruments: Optional[List[Optional[List[Instrument]]]] = Instrument.from_dict(dct.get("instruments"))
+        radius: Optional[int] = dct.get("radius")
+        center: Optional[sympy.Point] = geometry.Point.from_dict(dct.get("center")) if "center" in dct else None
 
-        return Row(angles=angles, instruments=instruments)
+        return Row(angles=angles, instruments=instruments, radius=radius, center=center)
 
-    def get_instruments_to_use(self, perimeter: float, distancing: int) -> List[Instrument]:
+    @staticmethod
+    def get_instruments_to_use(perimeter: float, distancing: int, instruments: Optional[List[Instrument]]) \
+            -> List[Instrument]:
         n_max_number_of_instruments: Final[int] = math.floor(float(perimeter) / distancing) + 1
-        if self.instruments is None:
+        if instruments is None:
             return [INSTRUMENTS[None]] * n_max_number_of_instruments
 
-        if len(self.instruments) > n_max_number_of_instruments:
+        if len(instruments) > n_max_number_of_instruments:
             print("A row has to many instruments for its length")
             return [INSTRUMENTS[None]] * n_max_number_of_instruments
 
-        return self.instruments
+        return instruments
 
 
 class Rows:
-    def __init__(self, rows: List[Optional[List[Row]]],
+    def __init__(self, rows: List[Optional[Row]],
                  n_distancing_delta_first_row: int,
-                 n_distancing_row: int) -> None:
-        self.rows_with_angles: Final[List[Optional[List[Row]]]] = rows
+                 n_distancing_row: int, center: geometry.Point) -> None:
+        self.rows: Final[List[Optional[Row]]] = rows
         self.n_distancing_delta_first_row: Final[int] = \
             n_distancing_delta_first_row
         self.n_distancing_row: Final[int] = n_distancing_row
+        self.center: Final[geometry.Point] = center
 
     @staticmethod
-    def from_dict(dct: dict) -> Optional["Rows"]:
-        list_rows: List[Optional[List[Row]]] = list()
+    def from_dict(dct: dict, stage_dimension: geometry.Polygon) -> Optional["Rows"]:
+
+        center_from_dict: Optional[geometry.Point] = geometry.Point.from_dict(dct.get("center"))
+        center: Final[geometry.Point] = center_from_dict if center_from_dict is not None \
+            else sympy.Point(round(stage_dimension.polygon.bounds[2] / 2), stage_dimension.polygon.bounds[3])
+
+        list_rows: List[Optional[Row]] = list()
         for dict_row in dct.get("list"):
             if dict_row is None:
                 list_rows.append(None)
             else:
-                list_sub_rows: List[Row] = list()
-                for dict_sub_row in dict_row:
-                    new_row: Optional[Row] = Row.from_dict(dict_sub_row)
-                    if new_row is None:
-                        return None
-
-                    list_sub_rows.append(new_row)
-                if len(list_sub_rows) == 0:
-                    print(f"A row does not have any sub row, but it is not null.")
+                new_row: Optional[Row] = Row.from_dict(dict_row)
+                if new_row is None:
                     return None
 
-                list_rows.append(list_sub_rows)
+                list_rows.append(new_row)
 
         if len(list_rows) == 0:
             print(f"No valid row is found.")
@@ -134,14 +149,14 @@ class Rows:
 
         distancing_row: Final[Optional[int]] = dct.get("distancing")
         distancing_first_row: Final[Optional[int]] = dct.get("distancingFirstRow")
-
+            
         if distancing_row is None:
             print(f"The distancing between rows should not be None")
             return None
 
         return Rows(rows=list_rows,
                     n_distancing_delta_first_row=distancing_first_row if distancing_first_row is not None else 0,
-                    n_distancing_row=distancing_row)
+                    n_distancing_row=distancing_row, center=center)
 
 
 class Hall:
@@ -158,8 +173,6 @@ class Hall:
         self.hidden_areas: Final[geometry.Areas] = hidden_areas
         self.hidden_areas_for_seats: Final[geometry.Areas] = self.hidden_areas.enlarge(RADIUS_SEAT)
         self.text_top_left: Final[sympy.Point] = text_top_left
-        self.rows_center: Final[sympy.Point] = sympy.Point(round(self.stage.polygon.bounds[2] / 2),
-                                                           self.stage.polygon.bounds[3])
 
     @staticmethod
     def from_dict(dct: dict) -> Optional["Hall"]:
@@ -173,7 +186,7 @@ class Hall:
             print(f"The hall {name} does not have dimension.")
             return None
 
-        rows: Final[Optional[Rows]] = Rows.from_dict(dct.get("rows"))
+        rows: Final[Optional[Rows]] = Rows.from_dict(dct.get("rows"), stage_dimension)
         if rows is None:
             print(f"The hall {name} does not have any rows, or they are invalid {dct.get('rows')}")
             return None
@@ -183,8 +196,8 @@ class Hall:
             print(f"There is no distancing {distancing}.")
             return None
 
-        percussion_areas: Final[geometry.Areas] = geometry.Areas.from_dict(dct.get("percussion"))
-        hidden_areas: Final[geometry.Areas] = geometry.Areas.from_dict(dct.get("hidden"))
+        percussion_areas: Final[geometry.Areas] = geometry.Areas.from_dict(dct.get("percussion"), rows.center)
+        hidden_areas: Final[geometry.Areas] = geometry.Areas.from_dict(dct.get("hidden"), rows.center)
 
         legend_top_left: Final[Optional[sympy.Point]] = geometry.Point.from_dict(dct.get("legend"))
 
@@ -216,7 +229,7 @@ class Hall:
         stage_x: float = self.stage.polygon.bounds[2]
         stage_y: float = self.stage.polygon.bounds[3]
 
-        podest_bottom_left: Final[sympy.Point] = sympy.Point(self.rows_center.x - podest_x / 2, self.rows_center.y)
+        podest_bottom_left: Final[sympy.Point] = sympy.Point(self.rows.center.x - podest_x / 2, self.rows.center.y)
         podest_top_left: Final[sympy.Point] = sympy.Point(podest_bottom_left.x, podest_bottom_left.y - podest_y)
         podest_top_right: Final[sympy.Point] = sympy.Point(podest_top_left.x + podest_x, podest_top_left.y)
         podest_bottom_right: Final[sympy.Point] = sympy.Point(podest_top_right.x, podest_bottom_left.y)
@@ -235,6 +248,9 @@ class Hall:
         for hidden_area in self.hidden_areas:
             if isinstance(hidden_area, geometry.Polygon):
                 draw.polygon(hidden_area.get_as_sequence(), fill=(160, 160, 160))
+            elif isinstance(hidden_area, geometry.Arc):
+                draw.arc(hidden_area.circle.bounds, start=hidden_area.angles.start_angle,
+                         end=hidden_area.angles.end_angle, fill=(160, 160, 160), width=5)
 
         print("Hall " + self.name)
 
@@ -255,13 +271,15 @@ class Hall:
 
     def draw_rows(self, im: Image) -> None:
         radius: int = self.rows.n_distancing_delta_first_row
-        for row_with_angles in self.rows.rows_with_angles:
-            radius = radius + max(self.distancing, self.rows.n_distancing_row)
+        for row in self.rows.rows:
+            min_radius = radius + max(self.distancing, self.rows.n_distancing_row)
+            radius = max(min_radius, row.radius if row is not None and row.radius is not None else min_radius)
             print(f"radius: {radius} cm.")
-            circle: geometry.Circle = geometry.Circle(self.rows_center, radius)
+            circle: geometry.Circle = geometry.Circle(
+                self.rows.center if row is None or row.center is None else row.center, radius)
 
             arcs_on_stage: List[geometry.ArcAngles] = geometry.ArcAngles.reduce_to(
-                [DEFAULT_ANGLES],
+                row.angles if row.angles is not None else [DEFAULT_ANGLES],
                 circle.intersection_arc_angles(self.stage_for_seats))
 
             for hidden_area in self.hidden_areas_for_seats:
@@ -271,41 +289,43 @@ class Hall:
                         circle.intersection_arc_angles(hidden_area)
                     )
 
+            s_arcs_on_stage = "["
             for arc in arcs_on_stage:
-                if row_with_angles is None:
-                    self.draw_row(im, Row(arc, None), circle)
-                else:
-                    if len(row_with_angles) == len(arcs_on_stage):
-                        i_current_arc: int = 0
-                        while i_current_arc < len(row_with_angles):
-                            row_part = row_with_angles[i_current_arc]
-                            allowed_arc: geometry.ArcAngles = arcs_on_stage[i_current_arc]
-                            if row_part is not None:
-                                self.draw_row(im,
-                                              Row(
-                                                  geometry.ArcAngles(
-                                                        max(row_part.angles.start_angle, allowed_arc.start_angle),
-                                                        min(row_part.angles.end_angle, allowed_arc.end_angle)),
-                                                  row_part.instruments),
-                                              circle)
-                            else:
-                                self.draw_row(im, Row(allowed_arc, None), circle)
+                s_arcs_on_stage += f"{{{arc.start_angle}, {arc.end_angle}}},"
+            s_arcs_on_stage = s_arcs_on_stage[:-1]
+            s_arcs_on_stage += "]"
+            print(f"The instruments are placed between the following angles: {s_arcs_on_stage}")
+            if row is not None and row.instruments is not None and len(row.instruments) != len(arcs_on_stage):
+                print("The list of instruments does not fit the arcs on stage.")
+                return
 
-                            i_current_arc = i_current_arc + 1
+            if row is None:
+                for arc in arcs_on_stage:
+                    self.draw_row(im, arc, None, circle)
+            else:
+                i: int = 0
+                while i < len(arcs_on_stage):
+                    arc_row: geometry.ArcAngles = arcs_on_stage[i]
+                    instruments: Optional[List[Instrument]] = row.instruments[i] if row.instruments is not None \
+                        else None
+                    self.draw_row(im, arc_row, instruments, circle)
 
-    def draw_row(self, im: Image, row: Row, circle: geometry.Circle) -> None:
+                    i = i + 1
+
+    def draw_row(self, im: Image, arc: geometry.ArcAngles, list_instruments: Optional[List[Instrument]],
+                 circle: geometry.Circle) -> None:
         # ImageDraw.Draw(im).arc(create_xy(center, Dimension(radius*2, radius*2)),
         #                        start=self.angles.start_angle, end=self.angles.end_angle, fill=(255, 255, 0))
 
-        perimeter: Final[float] = circle.perimeter(row.angles)
+        perimeter: Final[float] = circle.perimeter(arc)
 
-        instruments: Final[List[Instrument]] = row.get_instruments_to_use(perimeter, self.distancing)
+        instruments: Final[List[Instrument]] = Row.get_instruments_to_use(perimeter, self.distancing, list_instruments)
 
-        current_point: sympy.Point = circle.point(row.angles.start_angle) if len(instruments) > 1 \
-            else circle.point((row.angles.start_angle + row.angles.end_angle) / 2)
+        current_point: sympy.Point = circle.point(arc.start_angle) if len(instruments) > 1 \
+            else circle.point((arc.start_angle + arc.end_angle) / 2)
 
-        second_point: Final[sympy.Point] = circle.point(row.angles.start_angle
-                                                        + (abs(row.angles.end_angle - row.angles.start_angle)
+        second_point: Final[sympy.Point] = circle.point(arc.start_angle
+                                                        + (abs(arc.end_angle - arc.start_angle)
                                                            / (len(instruments) - 1))) \
             if len(instruments) > 1 \
             else current_point

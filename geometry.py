@@ -38,78 +38,35 @@ class Polygon:
 
         return None
 
+    def get_points(self) -> List[sympy.Point]:
+        if isinstance(self.polygon, sympy.Segment):
+            return self.polygon.points
+        else:
+            return self.polygon.vertices
+
     def get_as_sequence(self) -> Sequence[Tuple[int, int]]:
         seq: List[Tuple[int, int]] = []
-        for pos in self.polygon.vertices:
+        for pos in self.get_points():
             seq.append((pos.x, pos.y))
 
         return seq
 
-    def distance_from_second_object(self, points: Tuple[sympy.Point, sympy.Point]) -> float:
-        return self.polygon.distance(points[1])
-
     def enlarge(self, extra: int) -> "Polygon":
         new_vertices: List[sympy.Point] = []
-            
-        for point in self.polygon.vertices:
-            points: List[Tuple[sympy.Point, sympy.Point]] = \
-                [
-                    (sympy.Point(point.x + extra, point.y + extra), sympy.Point(point.x + 1, point.y + 1)),
-                    (sympy.Point(point.x - extra, point.y + extra), sympy.Point(point.x - 1, point.y + 1)),
-                    (sympy.Point(point.x - extra, point.y - extra), sympy.Point(point.x - 1, point.y - 1)),
-                    (sympy.Point(point.x + extra, point.y - extra), sympy.Point(point.x + 1, point.y - 1)),
-                ]
-            sorted_points = sorted(points, key=self.distance_from_second_object, reverse=True)
-            new_vertices.append(sorted_points[0][0])
+
+        for point in self.get_points():
+            extended_points: List[sympy.Point] = [sympy.Point(point.x + extra, point.y + extra),
+                                                  sympy.Point(point.x + extra, point.y - extra),
+                                                  sympy.Point(point.x - extra, point.y + extra),
+                                                  sympy.Point(point.x - extra, point.y - extra)]
+            sorted_points = sorted(extended_points, key=self.polygon.distance, reverse=True)
+            new_vertices.append(sorted_points[0])
+            # TODO understand why this code deos not work
+            # for extended_point in extended_points:
+            #     if self.polygon.distance(extended_point) >= extra:
+            #         new_vertices.append(extended_point)
 
         return Polygon(*new_vertices)
-
-
-class Dimension:
-    """Representation of a dimension."""
-    @staticmethod
-    def from_dict(dct: dict) -> Optional["Polygon"]:
-        if dct is None or "x" not in dct or "y" not in dct:
-            print(f"A dimension is not valid {dct}.")
-            return None
-
-        x_max: Final[int] = dct["x"]
-        y_max: Final[int] = dct["y"]
-        p0: Final[sympy.Point] = sympy.Point(0, 0)
-        p1: Final[sympy.Point] = sympy.Point(0, y_max)
-        p2: Final[sympy.Point] = sympy.Point(x_max, y_max)
-        p3: Final[sympy.Point] = sympy.Point(x_max, 0)
-
-        return Polygon(p0, p1, p2, p3)
-
-
-class Area(Union[Polygon]):
-    @staticmethod
-    def from_dict(dct: dict) -> Optional["Area"]:
-        if "polygon" in dct:
-            return Polygon.from_dict(dct)
-
-        return None
-
-
-class Areas(List[Area]):
-    @staticmethod
-    def from_dict(list_areas: List[dict]) -> "Areas":
-        areas: List[Area] = list()
-        for dict_area in list_areas:
-            new_area: Optional[Area] = Area.from_dict(dict_area)
-            if new_area is not None:
-                areas.append(new_area)
-
-        return Areas(areas)
-
-    def enlarge(self, extra: int) -> "Areas":
-        new_areas: List[Area] = []
-        for area in self:
-            if isinstance(area, Polygon):
-                new_areas.append(area.enlarge(extra))
-
-        return Areas(new_areas)
 
 
 class ArcAngles:
@@ -131,6 +88,16 @@ class ArcAngles:
             return None
 
         return ArcAngles(start_angle=start, end_angle=end)
+
+    @staticmethod
+    def from_list(list_angles: Optional[List[Optional[dict]]]) -> Optional[List[Optional["ArcAngles"]]]:
+        if list_angles is None:
+            return None
+
+        list_arc_angles: List[Optional[ArcAngles]] = []
+        for dct in list_angles:
+            list_arc_angles.append(ArcAngles.from_dict(dct))
+        return list_arc_angles
 
     @staticmethod
     def reduce_to(sorted_arcs: List["ArcAngles"], sorted_allowed_arcs: List["ArcAngles"]) -> List["ArcAngles"]:
@@ -177,6 +144,86 @@ class ArcAngles:
         return current_arcs
 
 
+class Arc:
+    """Representation of an arc, for example a step on the stage."""
+    def __init__(self, circle: sympy.Circle, angles: ArcAngles) -> None:
+        self.circle: Final[sympy.Circle] = circle
+        self.angles: Final[ArcAngles] = angles
+
+    @staticmethod
+    def from_dict(dct: dict, stage_center: sympy.Point) -> Optional["Arc"]:
+        arc: Optional[dict] = dct.get("arc")
+        if arc is None:
+            return None
+
+        radius: Final[Optional[int]] = arc.get("radius")
+        if radius is None:
+            print(f"An arc has to contain a radius ({dct})")
+            return None
+
+        angles: Final[Optional[ArcAngles]] = ArcAngles.from_dict(arc.get("angles"))
+        if angles is None:
+            print(f"An arc has to contain angles ({dct})")
+            return None
+
+        dct_center: Optional[dict] = arc.get("center")
+        center_from_dict: Final[Optional[Point]] = Point.from_dict(dct_center) if dct_center is not None else None
+        center: Final[Point] = center_from_dict if center_from_dict is not None else stage_center
+
+        return Arc(sympy.Circle(center, radius), angles)
+
+    def get_bounds_as_sequence(self) -> Sequence[Tuple[int, int]]:
+        seq: List[Tuple[int, int]] = []
+        print(f"bounds = {self.circle.bounds}")
+        for pos in self.circle.bounds:
+            seq.append((pos.x, pos.y))
+
+        return seq
+
+
+class Dimension:
+    """Representation of a dimension."""
+    @staticmethod
+    def from_dict(dct: dict) -> Optional["Polygon"]:
+        if dct is None or "x" not in dct or "y" not in dct:
+            print(f"A dimension is not valid {dct}.")
+            return None
+
+        x_max: Final[int] = dct["x"]
+        y_max: Final[int] = dct["y"]
+        p0: Final[sympy.Point] = sympy.Point(0, 0)
+        p1: Final[sympy.Point] = sympy.Point(0, y_max)
+        p2: Final[sympy.Point] = sympy.Point(x_max, y_max)
+        p3: Final[sympy.Point] = sympy.Point(x_max, 0)
+
+        return Polygon(p0, p1, p2, p3)
+
+
+class Areas(List[Union[Polygon, Arc]]):
+    @staticmethod
+    def from_dict(list_areas: List[dict], stage_center: sympy.Point) -> "Areas":
+        areas: List[Union[Polygon, Arc]] = list()
+        for dict_area in list_areas:
+            new_area: Optional[Union[Polygon, Arc]] = None
+            if "polygon" in dict_area:
+                new_area = Polygon.from_dict(dict_area)
+            elif "arc" in dict_area:
+                new_area = Arc.from_dict(dict_area, stage_center)
+
+            if new_area is not None:
+                areas.append(new_area)
+
+        return Areas(areas)
+
+    def enlarge(self, extra: int) -> "Areas":
+        new_areas: List[Union[Polygon, Arc]] = []
+        for area in self:
+            if isinstance(area, Polygon):
+                new_areas.append(area.enlarge(extra))
+
+        return Areas(new_areas)
+
+
 class Circle(sympy.Circle):
     """Representation of a circle."""
     def sort_points(self, points: List[sympy.Point], clockwise: bool) -> List[sympy.Point]:
@@ -199,11 +246,11 @@ class Circle(sympy.Circle):
         if number_of_intersection == 0:
             return angles
 
-        i: int = 0
+        i: int = 1
         while i < number_of_intersection:
             current_angle: float = self.angle(intersections_with_stage[i])
             is_last: bool = i == number_of_intersection - 1
-            other_angle: float = self.angle(intersections_with_stage[i-1]) if i > 0 else 0
+            other_angle: float = self.angle(intersections_with_stage[i-1])  # start with i = 1
             arc_middle: sympy.Point = self.point((other_angle + current_angle) / 2)
             if polygon.polygon.encloses_point(arc_middle):
                 angles.append(ArcAngles(other_angle, current_angle))
@@ -234,7 +281,7 @@ class Circle(sympy.Circle):
         from math import atan2, degrees
         angle_in_radius = atan2(-(self.center.y - pos.y), pos.x - self.center.x)
         angle_in_degrees = degrees(angle_in_radius)
-        if angle_in_degrees > 0:
+        if angle_in_degrees > 90:
             return angle_in_degrees
         else:
             return 360 + angle_in_degrees
