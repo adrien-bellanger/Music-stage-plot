@@ -118,12 +118,13 @@ class Row:
 class Rows:
     def __init__(self, rows: List[Optional[Row]],
                  n_distancing_delta_first_row: int,
-                 n_distancing_row: int, center: geometry.Point) -> None:
+                 n_distancing_row: int, center: geometry.Point, podium: geometry.Polygon) -> None:
         self.rows: Final[List[Optional[Row]]] = rows
         self.n_distancing_delta_first_row: Final[int] = \
             n_distancing_delta_first_row
         self.n_distancing_row: Final[int] = n_distancing_row
         self.center: Final[geometry.Point] = center
+        self.podium: Final[geometry.Polygon] = podium
 
     @staticmethod
     def from_dict(dct: dict, stage_dimension: geometry.Polygon) -> Optional["Rows"]:
@@ -131,6 +132,12 @@ class Rows:
         center_from_dict: Optional[geometry.Point] = geometry.Point.from_dict(dct.get("center"))
         center: Final[geometry.Point] = center_from_dict if center_from_dict is not None \
             else sympy.Point(round(stage_dimension.polygon.bounds[2] / 2), stage_dimension.polygon.bounds[3])
+
+        podium_from_dct: Final[Optional[geometry.Polygon]] = geometry.Polygon.from_dict(dct.get("podium")) \
+            if "podium" in dct else None
+        podium: Final[geometry.Point] = podium_from_dct if podium_from_dct is not None \
+            else geometry.Polygon(sympy.Point(center.x - 75, center.y - 150), sympy.Point(center.x - 75, center.y),
+                                  sympy.Point(center.x + 75, center.y), sympy.Point(center.x + 75, center.y - 150))
 
         list_rows: List[Optional[Row]] = list()
         for dict_row in dct.get("list"):
@@ -156,7 +163,7 @@ class Rows:
 
         return Rows(rows=list_rows,
                     n_distancing_delta_first_row=distancing_first_row if distancing_first_row is not None else 0,
-                    n_distancing_row=distancing_row, center=center)
+                    n_distancing_row=distancing_row, center=center, podium=podium)
 
 
 class Hall:
@@ -223,23 +230,14 @@ class Hall:
 
         font = ImageFont.truetype("arial.ttf", 20)
 
-        podest_x = 100
-        podest_y = 100
-
         stage_x: float = self.stage.polygon.bounds[2]
         stage_y: float = self.stage.polygon.bounds[3]
-
-        podest_bottom_left: Final[sympy.Point] = sympy.Point(self.rows.center.x - podest_x / 2, self.rows.center.y)
-        podest_top_left: Final[sympy.Point] = sympy.Point(podest_bottom_left.x, podest_bottom_left.y - podest_y)
-        podest_top_right: Final[sympy.Point] = sympy.Point(podest_top_left.x + podest_x, podest_top_left.y)
-        podest_bottom_right: Final[sympy.Point] = sympy.Point(podest_top_right.x, podest_bottom_left.y)
 
         im = Image.new("RGBA", (stage_x, stage_y),
                        (255, 255, 255))
         draw = ImageDraw.Draw(im)
 
-        draw.polygon(geometry.Polygon(podest_bottom_left, podest_top_left,
-                                      podest_top_right, podest_bottom_right).get_as_sequence(),
+        draw.polygon(self.rows.podium.get_as_sequence(),
                      fill=None, outline=(0, 0, 0))
 
         # Draw "Percussion line"
