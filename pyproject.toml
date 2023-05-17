@@ -5,10 +5,10 @@ description = ""
 authors = ["Adrien Bellanger <darktable@bellanger-fr.de>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 sympy = "^1.9"
 Pillow = "^9.0.1"
-mypy = "^0.931"
+mypy = "^0.950"
 
 [tool.poetry.dev-dependencies]
 

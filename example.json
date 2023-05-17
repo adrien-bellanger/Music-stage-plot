@@ -1,37 +1,32 @@
 {
-    "name":"Test_Großsedlitz",
+    "name":"Torgau",
     "stage":
     {
-        "length": 1300,
-        "width": 900
+        "y": 1000,
+        "x": 1350
     },
     "rows":
     {
         "list":
         [
-            null, null, null, null, null, null,
-            [
-                {
-                    "angles":
-                    {
-                        "start": 214,
-                        "end": 237
-                    },
-                    "instruments": null
-                },
-                {
-                    "angles":
-                    {
-                        "start": 303,
-                        "end": 326
-                    },
-                    "instruments": null
-                }]
+            {"radius": 200,"_instruments": [["Clarinet", "Clarinet", "Clarinet", "Oboe", "Oboe", "Piccolo", "Flute", "Flute"]]},
+            {"_instruments": [["Clarinet", "Clarinet", "Clarinet", "Clarinet", "Clarinet", "BassClarinet", "BassClarinet", "Bassoon", "Bassoon", "Bassoon", "Oboe", "Flute", "Flute", "Flute"]]},
+            {"_instruments": [["Clarinet", "Clarinet", "Clarinet", "Clarinet", "Clarinet", "Trumpet", "Trumpet", "Trumpet", "Trumpet", "Trumpet", "Trumpet", "Horn", "Horn", "Horn","Sax", "Sax", "Sax", null]]},
+            {"_instruments": [["NoInstrument", "NoInstrument", "NoInstrument", "NoInstrument", "NoInstrument", "Euphonium", "Euphonium", "Euphonium", "Euphonium", "Euphonium" ,"Horn", "Horn", "Horn", null, null, "Sax", null, null,  "NoInstrument", "NoInstrument"]]},
+            {"angles": [{"start": 200, "end": 235}, {"start": 305, "end": 340}],
+                "_angles": [{"start": 240, "end": 305}],"_instruments": [["Trombone", "Trombone", "Trombone", "Trombone", "Trombone", "Trombone","Tuba", "Tuba", "Tuba", "Tuba", "Tuba" ]]}
         ],
-        "distancing": 150,
-        "distancingFirstRow": 50
+        "_commented_list": [
+            {"angles": [{"start": 190, "end": 220}, {"start": 320, "end": 350}]},
+            {"angles": [{"start": 190, "end": 215}, {"start": 325, "end": 350}]},
+            {"angles": [{"start": 190, "end": 212}, {"start": 328, "end": 350}]}
+        ],
+        "distancing": 120,
+        "distancingFirstRow": 40,
+        "center": {"x": 675, "y": 1000},
+        "_podium": {"polygon":  [{"x":350, "y":1600}, {"x": 550, "y": 1600}, {"x": 550, "y": 1800}, {"x": 350, "y": 1800}]}
     },
-    "distancing": 100,
+    "distancing": 75,
     "percussion":
     [
         {
@@ -43,14 +38,14 @@
                 },
                 {
                     "x": 0,
-                    "y": 250
+                    "y": 350
                 },
                 {
-                    "x": 1500,
-                    "y": 250
+                    "x": 1300,
+                    "y": 350
                 },
                 {
-                    "x": 1500,
+                    "x": 1300,
                     "y": 0
                 }
             ]
